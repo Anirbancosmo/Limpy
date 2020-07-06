@@ -21,6 +21,9 @@ def volume_box(boxsize):
 def volume_cell(boxsize,ngrid):
     """
     The volume of a cell in a simulation box.
+    unit: boxsize in Mpc, ngrid: 1nt
+    return: volume in Mpc^3
     """
     clen= boxsize/ngrid   #length of a cell
     return clen**3   # in Mp
+
