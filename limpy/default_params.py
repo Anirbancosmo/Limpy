@@ -34,7 +34,7 @@ default_dummy_values={
 
 
 default_constants={
-        'c_in_m':
+        'c_in_m': 3e8 #meter
         
         
         }
