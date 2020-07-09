@@ -1,4 +1,4 @@
-!/usr/bin/env python2
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 from __future__ import division
@@ -165,9 +165,9 @@ def mhalo_to_lcp_unvec(z,logMh, kind='mean'):
     down (1-sigma lower bound)
     """
     
-    lcp_low=dp.default_dummy_values['lcp_low']
+    log_lcp_low=dp.default_dummy_values['log_lcp_low']
     if logMh<11:
-        return lcp_low
+        return log_lcp_low
     else:
         z_sfr, SFR_mean, SFR_down, SFR_up=mhalo_to_sfr(logMh)
         SFR_mean=np.interp(z,z_sfr,SFR_mean)
@@ -265,8 +265,8 @@ def plot_sfr_mhalo(Mhalo_array_logscale,colorlist=None,figname=None):
 
 
 
-def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_npz,z_halos,halo_cutoff_mass_log=9, halo_plot=True,
-               density_plot=False):
+def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_cutoff_mass_log=11,
+               density_plot=False, halo_overplot=False, plot_lines=False):
     """
     Plot a slice of gas density field and overplot the distribution of
     haloes in that slice.
@@ -274,9 +274,15 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_npz,z_halos,halo_cu
     boxsize: size of box in Mpc
     ngrid: number of grids along the one axis of simulation box
     nproj: cells to project (values could range from 1 to the ngrid)
-    halocat_npz: npz halo catalogue file (full path) 
+    halocat: path to halo catalogue file (full path) 
+    halo_redshift: redshift of halos
+    halo_cutoff_mass_log: cutt off mass of the halos
+    density_plot: If true, plot the density distribution
+    halo_plot: If True, plot halos
+    
     
     """
+    global x_halos, y_halos, r_lcp
     
     low_mass_log=0.0
     #z_halos=6.9  #Calculated from the scale factor of halo catalouge
@@ -314,16 +320,46 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_npz,z_halos,halo_cu
         
         ax.set_xlim(0,boxsize)
         ax.set_ylim(0,boxsize)
+
         divider = make_axes_locatable(ax)
-        cax = divider.append_axes("bottom", "3%", pad="13%")
-        cb = plt.colorbar(s,cax=cax,orientation="horizontal")
-        cb.set_label(r'$\Delta$',labelpad=5)
-        
+        cax = divider.append_axes("right", "5%", pad="3%")
+        cb = plt.colorbar(s, cax=cax)
+        cb.set_label(r'$\Delta_{\rho}$',
+                     labelpad=1)
+       
         cb.solids.set_edgecolor("face")
+        ax.set_aspect('equal', 'box')
+        
+        
     
-    if halo_plot:
+    if halo_overplot:
+        
+         # Plot gas density 
+        with open(dens_gas_file, 'rb') as f:
+            dens_gas = np.fromfile(f, dtype='f', count=-1)
+            #dens_gas=dens_gas+1.0
+            dens_gas=dens_gas.reshape(ngrid**3,)
+            rhobar = np.mean(dens_gas)
+        
+        
+        i, j, val = slice(dens_gas, ngrid,nproj)
+        val = val/(rhobar*nproj)
     
-        halomass, halo_cm=make_halocat(halocat_npz,filetype='dat',boxsize=boxsize)
+        cellsize = boxsize/ngrid
+        i *= cellsize
+        j *= cellsize 
+    
+    
+        plt.xlabel('cMpc')
+        plt.ylabel('cMpc')
+    
+        s = plt.scatter(i, j, c=val, s=10, marker='s',
+                       edgecolor='none', rasterized=True,
+                       cmap=plt.cm.gist_yarg, vmax=3.0, vmin=-3.0 )
+        
+       
+    
+        halomass, halo_cm=make_halocat(halocat,filetype='dat',boxsize=boxsize)
         
         nhalo=len(halomass)
         # Overplot halos 
@@ -331,12 +367,14 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_npz,z_halos,halo_cu
         y_halos = halo_cm[range(1,nhalo*3,3)]
         z_halos = halo_cm[range(2,nhalo*3,3)]
        
-        #halomass_filter=halomass
-        logmh=np.log10(halomass)
-        logmh=np.array([int(round(logmh[key])) for key in range(nhalo)])
+        print 'Minimum halo mass:', halomass.min()
+        print 'Maximum halo mass:', halomass.max()
         
-        lowmass_filter=np.where(logmh<halo_cutoff_mass_log,halomass,0.0)
-        highmass_filter=np.where(logmh<halo_cutoff_mass_log,low_mass_log,logmh)
+                #halomass_filter=halomass
+        logmh=np.log10(halomass)
+        logmh=np.array([int(logmh[key]) for key in range(nhalo)])
+        
+        highmass_filter=np.where(logmh>halo_cutoff_mass_log,logmh,low_mass_log)
        
         #z_min = 0.0
         z_max = nproj*cellsize # See slice() above
@@ -346,20 +384,108 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_npz,z_halos,halo_cu
         y_halos = y_halos[mask]
         r = highmass_filter[mask]
         r = r/r.max()
+
         
-        lcp=mhalo_to_lcp(z_halos, highmass_filter,kind='mean')
-        r_lcp=lcp[mask]
+        s1=plt.scatter(x_halos, y_halos, marker='o', s=20*r, \
+                        color='C2', alpha=0.9)
+        
+        ax.set_xlim(0,boxsize)
+        ax.set_ylim(0,boxsize)
+
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", "5%", pad="3%")
+        cb = plt.colorbar(s, cax=cax)
+        cb.set_label(r'$\Delta_\rho$',
+                     labelpad=1)
+       
+        cb.solids.set_edgecolor("face")
+        ax.set_aspect('equal', 'box')
+   
+
+        
+    if plot_lines:
+        """
+        Plot a slice of gas density field and overplot the distribution of
+        haloes in that slice.
     
-        r_lowmass = lowmass_filter[mask]
-        r_lowmass = r_lowmass/r_lowmass.max()
+        """
         
-        s1=plt.scatter(x_halos, y_halos, marker='o', s=50*r, rasterized=True, \
-                        color='C2', alpha=0.5)
+        with open(dens_gas_file, 'rb') as f:
+            dens_gas = np.fromfile(f, dtype='f', count=-1)
+            #dens_gas=dens_gas+1.0
+            dens_gas=dens_gas.reshape(ngrid**3,)
+            rhobar = np.mean(dens_gas)
+    
         
-        s1=plt.scatter(x_halos, y_halos, marker='o', c=r_lcp, s=100*r,cmap='YlOrRd' , vmin=2e6, vmax=5e7, alpha=1.0, norm=mpl.colors.LogNorm())
+            
+        halomass, halo_cm=make_halocat(halocat,filetype='dat',boxsize=boxsize)
+        
+        nhalo=len(halomass)
+        # Overplot halos 
+        x_halos = halo_cm[range(0,nhalo*3,3)]
+        y_halos = halo_cm[range(1,nhalo*3,3)]
+        z_halos = halo_cm[range(2,nhalo*3,3)]
+       
+        print 'Minimum halo mass:', halomass.min()
+        print 'Maximum halo mass:', halomass.max()
+        
+        #halomass_filter=halomass
+        logmh=np.log10(halomass)
+        logmh=np.array([int(logmh[key]) for key in range(nhalo)])
+        
+        highmass_filter=np.where(logmh>halo_cutoff_mass_log,logmh,low_mass_log)
+        lcp=mhalo_to_lcp(halo_redshift,highmass_filter, kind='mean')
+
+            
+        fig = plt.figure(figsize=(8, 8), dpi=100)
+        ax = fig.add_subplot(1, 1, 1) 
+        # Plot gas density 
+        i, j, val = slice(dens_gas, ngrid,nproj)
+        val = val/(rhobar*nproj)
+    
+        cellsize = boxsize/ngrid
+        i *= cellsize
+        j *= cellsize 
+    
+        fig = plt.figure(figsize=(8, 8), dpi=100)
+        ax = fig.add_subplot(1, 1, 1)
+    
+        plt.xlabel('cMpc')
+        plt.ylabel('cMpc')
+    
+        s = plt.scatter(i, j, c=val, s=10, marker='s',
+                       edgecolor='none', rasterized=True,
+                       cmap=plt.cm.gist_yarg, vmax=3.0, vmin=-3.0, alpha=0.2)
+   
+    
+        #z_min = 0.0
+        z_max = nproj*cellsize # See slice() above
+    
+        mask = z_halos < z_max
+        x_halos = x_halos[mask]
+        y_halos = y_halos[mask]
+        r = highmass_filter[mask]
+        r = r/r.max()
+        
+        r_lcp=lcp[mask]
+        
+        print "r_lcp", r_lcp
+
+        #r_lcp_log=[10**p for p in r_lcp] 
+        #plt.scatter(x_halos, y_halos, marker='o', s=50*r_lowmass, rasterized=True,
+        #                color='C2', alpha=0.5)
+      
+        
+        s1=plt.scatter(x_halos, y_halos, marker='o', c=r_lcp, s=50*r,cmap='YlOrRd', vmin=4, alpha=0.9,norm=mpl.colors.LogNorm())
     
         ax.set_xlim(0,boxsize)
         ax.set_ylim(0,boxsize)
+        
+    
+    
+        #plt.text(5.0,5.0,r'$n_\mathrm{grid}=512^3$')
+        #plt.text(5.0,15.0,r'$z=6$')
+    
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", "5%", pad="3%")
         cb = plt.colorbar(s1, cax=cax)
@@ -368,9 +494,19 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_npz,z_halos,halo_cu
        
         cb.solids.set_edgecolor("face")
         ax.set_aspect('equal', 'box')
+        
+        
+        cax1 = divider.append_axes("bottom", "3%", pad="13%")
+        cb1 = plt.colorbar(s,cax=cax1,orientation='horizontal')
+        cb1.set_label(r'$\Delta$',
+                     labelpad=5)
+        cb1.solids.set_edgecolor("face")
     
-
+        
+        plt.tight_layout()
+        plt.savefig("lines_1_nouv_full_projection1_z7.0.png",bbox_inches='tight')
     
     plt.tight_layout()
-    plt.savefig("slice_plot.pdf",bbox_inches='tight')
+    #plt.savefig("slice_plot.pdf",bbox_inches='tight')
   
+
