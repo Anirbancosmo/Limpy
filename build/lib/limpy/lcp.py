@@ -464,6 +464,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
         
         r_lcp=lcp[mask]
         
+        print "r_lcp", r_lcp
 
         #r_lcp_log=[10**p for p in r_lcp] 
         #plt.scatter(x_halos, y_halos, marker='o', s=50*r_lowmass, rasterized=True,
