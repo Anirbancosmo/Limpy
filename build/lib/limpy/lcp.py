@@ -105,7 +105,7 @@ def sfr_to_lcp_scatter(z, sfr,a_off=dp.default_lcp_scatter_params['a_off'],a_std
 
     
 
-def sfr_to_lcp(z, sfr):
+def sfr_to_lcp_nonscatter(z, sfr):
     """
     This function returns luminosity of CII lines in the unit of L_sun. This does not include the scatter, rather
     this is the mean relation. 
@@ -122,7 +122,7 @@ def sfr_to_lcp(z, sfr):
     alpha_z= a-b*z
     beta_z= c- d*z
     log_lcp=alpha_z*np.log10(sfr)+beta_z
-    return 10**log_lcp
+    return log_lcp
 
 
 def mhalo_to_sfr(logMh):
@@ -158,36 +158,45 @@ def mhalo_to_sfr(logMh):
     return z_sfr, SFR, (SFR-error_SFR_down), (SFR+error_SFR_up)
     
 
-def mhalo_to_lcp_unvec(z,logMh, kind='mean'):
+def mhalo_to_lcp(z,logMh, kind='mean',use_scatter=True):
     """
     this function returns luminosity of CII lines in the unit of L_sun.
     Kind optitions takes the SFR: mean , up (1-sigma upper bound) and
     down (1-sigma lower bound)
     """
+    mhlen=len(logMh)
+    result=np.zeros(mhlen)
     
     log_lcp_low=dp.default_dummy_values['log_lcp_low']
-    if logMh<11:
-        return log_lcp_low
-    else:
-        z_sfr, SFR_mean, SFR_down, SFR_up=mhalo_to_sfr(logMh)
-        SFR_mean=np.interp(z,z_sfr,SFR_mean)
-        SFR_up=np.interp(z,z_sfr,SFR_up)
-        SFR_down=np.interp(z,z_sfr,SFR_down)
-       
-        if kind=='mean':
-            lcp=sfr_to_lcp_scatter(z,SFR_mean)
-        if kind=='up':
-            lcp =sfr_to_lcp_scatter(z,SFR_up)
-        if kind=='down':
-            lcp=sfr_to_lcp_scatter(z,SFR_down)
-    return lcp
-
-
-"""
-Ugly way to vectorize it...
-#TODO: vectorize it by doing optimization 
-"""
-mhalo_to_lcp = np.vectorize(mhalo_to_lcp_unvec)
+    for i in range(mhlen):
+        logMh_val=logMh[i]
+        
+        if logMh_val<11:
+            lcp=log_lcp_low
+            
+        elif(logMh_val>=11):
+            z_sfr, SFR_mean, SFR_down, SFR_up=mhalo_to_sfr(logMh_val)
+            SFR_mean=np.interp(z,z_sfr,SFR_mean)
+            SFR_up=np.interp(z,z_sfr,SFR_up)
+            SFR_down=np.interp(z,z_sfr,SFR_down)
+            
+            if(use_scatter==True and kind=='mean'):
+                lcp=sfr_to_lcp_scatter(z,SFR_mean)
+            if(use_scatter==True and kind=='up'):
+                lcp =sfr_to_lcp_scatter(z,SFR_up)
+            if(use_scatter==True and kind=='down'):
+                lcp=sfr_to_lcp_scatter(z,SFR_down)
+                
+            if(use_scatter==False and kind=='mean'):
+                lcp=sfr_to_lcp_nonscatter(z,SFR_mean)
+            if(use_scatter==False and kind=='up'):
+                lcp =sfr_to_lcp_nonscatter(z,SFR_up)
+            if(use_scatter==False and kind=='down'):
+                lcp=sfr_to_lcp_nonscatter(z,SFR_down)
+            
+        result[i]=lcp
+        
+    return result
 
 
 def slice(datacube, ngrid, nproj, option='C'):
@@ -265,7 +274,7 @@ def plot_sfr_mhalo(Mhalo_array_logscale,colorlist=None,figname=None):
 
 
 
-def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_cutoff_mass_log=11,
+def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_cutoff_mass_log=11, use_scatter=True,
                density_plot=False, halo_overplot=False, plot_lines=False):
     """
     Plot a slice of gas density field and overplot the distribution of
@@ -282,7 +291,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
     
     
     """
-    global x_halos, y_halos, r_lcp
+    global x_halos, y_halos, r_lcp,halomass_slice_cut,lcp,x_halos_cut, y_halos_cut
     
     low_mass_log=0.0
     #z_halos=6.9  #Calculated from the scale factor of halo catalouge
@@ -416,26 +425,8 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
             dens_gas=dens_gas.reshape(ngrid**3,)
             rhobar = np.mean(dens_gas)
     
-        
-            
-        halomass, halo_cm=make_halocat(halocat,filetype='dat',boxsize=boxsize)
-        
-        nhalo=len(halomass)
-        # Overplot halos 
-        x_halos = halo_cm[range(0,nhalo*3,3)]
-        y_halos = halo_cm[range(1,nhalo*3,3)]
-        z_halos = halo_cm[range(2,nhalo*3,3)]
-       
-        print 'Minimum halo mass:', halomass.min()
-        print 'Maximum halo mass:', halomass.max()
-        
-        #halomass_filter=halomass
-        logmh=np.log10(halomass)
-        logmh=np.array([int(logmh[key]) for key in range(nhalo)])
-        
-        highmass_filter=np.where(logmh>halo_cutoff_mass_log,logmh,low_mass_log)
-        lcp=mhalo_to_lcp(halo_redshift,highmass_filter, kind='mean')
-
+    
+    
         # Plot gas density 
         i, j, val = slice(dens_gas, ngrid,nproj)
         val = val/(rhobar*nproj)
@@ -449,29 +440,53 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
         plt.ylabel('cMpc')
     
         s = plt.scatter(i, j, c=val, s=10, marker='s',
-                       edgecolor='none', rasterized=True,
+                       edgecolor='none',
                        cmap=plt.cm.gist_yarg, vmax=3.0, vmin=-3.0, alpha=0.2)
-   
-    
+        
+            
+        halomass, halo_cm=make_halocat(halocat,filetype='dat',boxsize=boxsize)
+        nhalo=len(halomass)
+        # Overplot halos 
+        x_halos = halo_cm[range(0,nhalo*3,3)]
+        y_halos = halo_cm[range(1,nhalo*3,3)]
+        z_halos = halo_cm[range(2,nhalo*3,3)]
+       
+        print 'Minimum halo mass:', halomass.min()
+        print 'Maximum halo mass:', halomass.max()
+        
+        #halomass_filter=halomass
+        logmh=np.log10(halomass)
+        logmh=np.array([int(logmh[key]) for key in range(nhalo)])
+        
+        #highmass_filter=np.where(logmh>halo_cutoff_mass_log,logmh,low_mass_log)
+        
         #z_min = 0.0
         z_max = nproj*cellsize # See slice() above
     
         mask = z_halos < z_max
         x_halos = x_halos[mask]
         y_halos = y_halos[mask]
-        r = highmass_filter[mask]
-        r = r/r.max()
+        halomass_slice = logmh[mask]
         
-        r_lcp=lcp[mask]
+
+   
+        mass_cut=halomass_slice >= halo_cutoff_mass_log
+        halomass_slice_cut=halomass_slice[mass_cut]
+        x_halos_cut= x_halos[mass_cut]
+        y_halos_cut= y_halos[mass_cut]
         
-        print "r_lcp", r_lcp
+        
+        
+        
+        lcp=mhalo_to_lcp(halo_redshift, halomass_slice_cut, kind='mean',use_scatter=use_scatter)
+        r=halomass_slice_cut/halomass_slice_cut.max()
 
         #r_lcp_log=[10**p for p in r_lcp] 
         #plt.scatter(x_halos, y_halos, marker='o', s=50*r_lowmass, rasterized=True,
         #                color='C2', alpha=0.5)
       
         
-        s1=plt.scatter(x_halos, y_halos, marker='o', c=r_lcp, s=50*r,cmap='YlOrRd', vmin=4, alpha=0.9,norm=mpl.colors.LogNorm())
+        s1=plt.scatter(x_halos_cut, y_halos_cut, marker='o', c=lcp, s=50*r,cmap='YlOrRd', alpha=0.9)
     
         ax.set_xlim(0,boxsize)
         ax.set_ylim(0,boxsize)
