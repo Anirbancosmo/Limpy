@@ -2,7 +2,7 @@ README.md
 setup.py
 limpy/Lot.py
 limpy/__init__.py
-limpy/default_params.py
+limpy/cosmos.py
 limpy/lco.py
 limpy/lcp.py
 limpy/params.py

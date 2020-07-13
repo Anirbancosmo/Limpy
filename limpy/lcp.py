@@ -3,10 +3,11 @@
 
 from __future__ import division
 import numpy as np
-import default_params as dp
+import params as p
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import utils  
 
 
 def read_sfr(SFR_filename):
@@ -81,8 +82,8 @@ def make_halocat(halo_file, filetype='npz',boxsize=160):
     return halomass, halo_cm
 
 
-def sfr_to_lcp_scatter(z, sfr,a_off=dp.default_lcp_scatter_params['a_off'],a_std=dp.default_lcp_scatter_params['a_std'],
-                       b_off=dp.default_lcp_scatter_params['b_off'],b_std=dp.default_lcp_scatter_params['b_std']):
+def sfr_to_lcp_scatter(z, sfr,a_off=p.default_lcp_scatter_params['a_off'],a_std=p.default_lcp_scatter_params['a_std'],
+                       b_off=p.default_lcp_scatter_params['b_off'],b_std=p.default_lcp_scatter_params['b_std']):
     
     """
     Calculates lumiosity of the CII lines from SFR assuming a 3\sigma Gussian scatter. The parameter values for the scattered relation
@@ -117,8 +118,8 @@ def sfr_to_lcp_nonscatter(z, sfr):
     \beta_z=c-d*z
     values are mentioned 
     """
-    a,b,c,d=dp.default_lcp_chung_params['a'],dp.default_lcp_chung_params['b'],\
-    dp.default_lcp_chung_params['c'],dp.default_lcp_chung_params['d']
+    a,b,c,d=p.default_lcp_chung_params['a'],p.default_lcp_chung_params['b'],\
+    p.default_lcp_chung_params['c'],p.default_lcp_chung_params['d']
     alpha_z= a-b*z
     beta_z= c- d*z
     log_lcp=alpha_z*np.log10(sfr)+beta_z
@@ -167,7 +168,7 @@ def mhalo_to_lcp(z,logMh, kind='mean',use_scatter=True):
     mhlen=len(logMh)
     result=np.zeros(mhlen)
     
-    log_lcp_low=dp.default_dummy_values['log_lcp_low']
+    log_lcp_low=p.default_dummy_values['log_lcp_low']
     for i in range(mhlen):
         logMh_val=logMh[i]
         
@@ -275,7 +276,7 @@ def plot_sfr_mhalo(Mhalo_array_logscale,colorlist=None,figname=None):
 
 
 def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_cutoff_mass_log=11, use_scatter=True,
-               density_plot=False, halo_overplot=False, plot_lines=False):
+               density_plot=False, halo_overplot=False, plot_lines=False, tick_label='mpc'):
     """
     Plot a slice of gas density field and overplot the distribution of
     haloes in that slice.
@@ -289,6 +290,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
     density_plot: If true, plot the density distribution
     halo_plot: If True, plot halos
     
+    tick_label=either 'mpc' or degree
     
     """
     global x_halos, y_halos, r_lcp,halomass_slice_cut,lcp,x_halos_cut, y_halos_cut
@@ -434,14 +436,11 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
         cellsize = boxsize/ngrid
         i *= cellsize
         j *= cellsize 
-    
-    
-        plt.xlabel('cMpc')
-        plt.ylabel('cMpc')
+  
     
         s = plt.scatter(i, j, c=val, s=10, marker='s',
                        edgecolor='none',
-                       cmap=plt.cm.gist_yarg, vmax=3.0, vmin=-3.0, alpha=0.2)
+                       cmap=plt.cm.gist_yarg, vmax=3.0, vmin=-3.0, alpha=0.9)
         
             
         halomass, halo_cm=make_halocat(halocat,filetype='dat',boxsize=boxsize)
@@ -477,7 +476,6 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
         
         
         
-        
         lcp=mhalo_to_lcp(halo_redshift, halomass_slice_cut, kind='mean',use_scatter=use_scatter)
         r=halomass_slice_cut/halomass_slice_cut.max()
 
@@ -487,10 +485,38 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
       
         
         s1=plt.scatter(x_halos_cut, y_halos_cut, marker='o', c=lcp, s=50*r,cmap='YlOrRd', alpha=0.9)
-    
-        ax.set_xlim(0,boxsize)
-        ax.set_ylim(0,boxsize)
         
+        if(tick_label=='mpc'):
+            ax.set_xlim(0,boxsize)
+            ax.set_ylim(0,boxsize)
+            plt.xlabel('cMpc')
+            plt.ylabel('cMpc')
+            
+        elif(tick_label=='degree'):    
+            ax.set_xlim(0,boxsize)
+            ax.set_ylim(0,boxsize)
+            
+            xmin=0
+            ymin=0
+            xmax=ymax=utils.boxsize_to_degree(halo_redshift, boxsize)
+            
+            N=4
+            xtick_mpc=ytick_mpc=np.linspace(0, boxsize, N)
+            
+            custom_yticks = np.round(np.linspace(ymin, ymax, N,dtype=float),1)
+            
+            ax.set_yticks(ytick_mpc)
+            ax.set_yticklabels(custom_yticks)
+            
+            custom_xticks = np.round(np.linspace(xmin, xmax, N,dtype=float),1)
+            ax.set_xticks(xtick_mpc)
+            ax.set_xticklabels(custom_xticks)
+            
+            plt.xlabel(r'$X\,(\mathrm{degree})$')
+            plt.ylabel('$Y\,(\mathrm{degree})$')
+
+            
+
     
     
         #plt.text(5.0,5.0,r'$n_\mathrm{grid}=512^3$')
