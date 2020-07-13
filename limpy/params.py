@@ -55,5 +55,14 @@ default_constants={
         
         'km_to_m': 1e3 #meter
         
-        
+        }
+
+
+experiments={'ccatp':
+        {
+                200:{'dnu':2.2, 'theta': 57},
+                280:{'dnu':2.8, 'theta': 45},
+                350:{'dnu':3.5, 'theta': 35},
+                410:{'dnu':4.1, 'theta': 30},
+        }
         }

@@ -321,16 +321,41 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
         j *= cellsize 
     
     
-        plt.xlabel('cMpc')
-        plt.ylabel('cMpc')
-    
         s = plt.scatter(i, j, c=val, s=10, marker='s',
                        edgecolor='none', rasterized=True,
                        cmap=plt.cm.gist_yarg, vmax=3.0, vmin=-3.0 )
         
         
-        ax.set_xlim(0,boxsize)
-        ax.set_ylim(0,boxsize)
+                
+        if(tick_label=='mpc'):
+            ax.set_xlim(0,boxsize)
+            ax.set_ylim(0,boxsize)
+            plt.xlabel('cMpc')
+            plt.ylabel('cMpc')
+            
+        elif(tick_label=='degree'):    
+            ax.set_xlim(0,boxsize)
+            ax.set_ylim(0,boxsize)
+            
+            xmin=0
+            ymin=0
+            xmax=ymax=utils.boxsize_to_degree(halo_redshift, boxsize)
+            
+            N=4
+            xtick_mpc=ytick_mpc=np.linspace(0, boxsize, N)
+            
+            custom_yticks = np.round(np.linspace(ymin, ymax, N,dtype=float),1)
+            
+            ax.set_yticks(ytick_mpc)
+            ax.set_yticklabels(custom_yticks)
+            
+            custom_xticks = np.round(np.linspace(xmin, xmax, N,dtype=float),1)
+            ax.set_xticks(xtick_mpc)
+            ax.set_xticklabels(custom_xticks)
+            
+            plt.xlabel(r'$X\,(\mathrm{degree})$')
+            plt.ylabel('$Y\,(\mathrm{degree})$')
+   
 
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", "5%", pad="3%")
@@ -360,9 +385,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
         i *= cellsize
         j *= cellsize 
     
-    
-        plt.xlabel('cMpc')
-        plt.ylabel('cMpc')
+   
     
         s = plt.scatter(i, j, c=val, s=10, marker='s',
                        edgecolor='none', rasterized=True,
@@ -400,9 +423,36 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
         s1=plt.scatter(x_halos, y_halos, marker='o', s=20*r, \
                         color='C2', alpha=0.9)
         
-        ax.set_xlim(0,boxsize)
-        ax.set_ylim(0,boxsize)
-
+        
+        if(tick_label=='mpc'):
+            ax.set_xlim(0,boxsize)
+            ax.set_ylim(0,boxsize)
+            plt.xlabel('cMpc')
+            plt.ylabel('cMpc')
+            
+        elif(tick_label=='degree'):    
+            ax.set_xlim(0,boxsize)
+            ax.set_ylim(0,boxsize)
+            
+            xmin=0
+            ymin=0
+            xmax=ymax=utils.boxsize_to_degree(halo_redshift, boxsize)
+            
+            N=4
+            xtick_mpc=ytick_mpc=np.linspace(0, boxsize, N)
+            
+            custom_yticks = np.round(np.linspace(ymin, ymax, N,dtype=float),1)
+            
+            ax.set_yticks(ytick_mpc)
+            ax.set_yticklabels(custom_yticks)
+            
+            custom_xticks = np.round(np.linspace(xmin, xmax, N,dtype=float),1)
+            ax.set_xticks(xtick_mpc)
+            ax.set_xticklabels(custom_xticks)
+            
+            plt.xlabel(r'$X\,(\mathrm{degree})$')
+            plt.ylabel('$Y\,(\mathrm{degree})$')
+   
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", "5%", pad="3%")
         cb = plt.colorbar(s, cax=cax)
@@ -411,8 +461,6 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
        
         cb.solids.set_edgecolor("face")
         ax.set_aspect('equal', 'box')
-   
-
         
     if plot_lines:
         """
@@ -457,9 +505,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
         logmh=np.log10(halomass)
         logmh=np.array([int(logmh[key]) for key in range(nhalo)])
         
-        #highmass_filter=np.where(logmh>halo_cutoff_mass_log,logmh,low_mass_log)
-        
-        #z_min = 0.0
+      
         z_max = nproj*cellsize # See slice() above
     
         mask = z_halos < z_max
@@ -478,14 +524,12 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
         
         lcp=mhalo_to_lcp(halo_redshift, halomass_slice_cut, kind='mean',use_scatter=use_scatter)
         r=halomass_slice_cut/halomass_slice_cut.max()
-
-        #r_lcp_log=[10**p for p in r_lcp] 
-        #plt.scatter(x_halos, y_halos, marker='o', s=50*r_lowmass, rasterized=True,
-        #                color='C2', alpha=0.5)
       
         
-        s1=plt.scatter(x_halos_cut, y_halos_cut, marker='o', c=lcp, s=50*r,cmap='YlOrRd', alpha=0.9)
+        s1=plt.scatter(x_halos_cut, y_halos_cut, marker='o', c=lcp, s=50*r,cmap='YlOrRd', vmin=5, vmax=7, alpha=0.9)
         
+            
+    
         if(tick_label=='mpc'):
             ax.set_xlim(0,boxsize)
             ax.set_ylim(0,boxsize)
@@ -514,13 +558,6 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
             
             plt.xlabel(r'$X\,(\mathrm{degree})$')
             plt.ylabel('$Y\,(\mathrm{degree})$')
-
-            
-
-    
-    
-        #plt.text(5.0,5.0,r'$n_\mathrm{grid}=512^3$')
-        #plt.text(5.0,15.0,r'$z=6$')
     
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", "5%", pad="3%")
@@ -537,12 +574,10 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
         cb1.set_label(r'$\Delta$',
                      labelpad=5)
         cb1.solids.set_edgecolor("face")
+            
     
-        
-        plt.tight_layout()
-        plt.savefig("lines_1_nouv_full_projection1_z7.0.png",bbox_inches='tight')
     
     plt.tight_layout()
-    #plt.savefig("slice_plot.pdf",bbox_inches='tight')
+    plt.savefig("slice_plot.pdf",bbox_inches='tight')
   
 
