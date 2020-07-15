@@ -60,9 +60,9 @@ default_constants={
 
 experiments={'ccatp':
         {
-                200:{'dnu':2.2, 'theta': 57},
-                280:{'dnu':2.8, 'theta': 45},
-                350:{'dnu':3.5, 'theta': 35},
-                410:{'dnu':4.1, 'theta': 30},
+                220:{'nu_central':220,'dnu':2.2, 'theta': 57},
+                280:{'nu_central':280,'dnu':2.8, 'theta': 45},
+                350:{'nu_central':350,'dnu':3.5, 'theta': 35},
+                410:{'nu_central':410,'dnu':4.1, 'theta': 30},
         }
         }
