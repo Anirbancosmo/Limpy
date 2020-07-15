@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import utils  
-
+from matplotlib import cm
+from astropy.convolution import convolve, Gaussian2DKernel, Tophat2DKernel, Gaussian1DKernel
+from astropy.modeling.models import Gaussian2D
 
 def read_sfr(SFR_filename):
     """
@@ -104,9 +106,34 @@ def sfr_to_lcp_scatter(z, sfr,a_off=p.default_lcp_scatter_params['a_off'],a_std=
         log_L_cp[i]=(a+b*np.log10(sfr[i]))
     return log_L_cp
 
-    
+   
 
-def sfr_to_lcp_nonscatter(z, sfr):
+def sfr_to_lcp_nonscatter(z, sfr,a_off=p.default_lcp_scatter_params['a_off'],b_off=p.default_lcp_scatter_params['b_off']):
+    """
+    This function returns luminosity of CII lines in the unit of L_sun. This does not include the scatter, rather
+    this is the mean relation. 
+    
+    Values of fitting parameters are taken from Eq (1) from Chung et al. 2020 (arxiv: 1812.08135)
+    
+    We write two equations as
+    \alpha_z=a-b*z
+    \beta_z=c-d*z
+    values are mentioned 
+    """
+    a,b=a_off, b_off
+  
+    if np.isscalar(sfr)==True:
+        sfr=np.atleast_1d(sfr)
+    
+    sfr_len=len(sfr)
+    log_L_cp=np.zeros(sfr_len)
+    
+    for i in range(sfr_len):
+        log_L_cp[i]=(a+b*np.log10(sfr[i]))
+    return log_L_cp
+
+
+def sfr_to_lcp_nonscatter_chung(z, sfr):
     """
     This function returns luminosity of CII lines in the unit of L_sun. This does not include the scatter, rather
     this is the mean relation. 
@@ -272,10 +299,106 @@ def plot_sfr_mhalo(Mhalo_array_logscale,colorlist=None,figname=None):
         plt.savefig("z_sfr_mhalo.png")
         
        
+def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_cutoff_mass_log=11, use_scatter=True,save_unit='degree',saved_file_name=None):
+    #low_mass_log=0.0
+    cellsize = boxsize/ngrid
+    
+    halomass, halo_cm=make_halocat(halocat_file,filetype='dat',boxsize=boxsize)
+    
+    nhalo=len(halomass)
+    # Overplot halos 
+    x_halos = halo_cm[range(0,nhalo*3,3)]
+    y_halos = halo_cm[range(1,nhalo*3,3)]
+    z_halos = halo_cm[range(2,nhalo*3,3)]
+   
+    print('Minimum halo mass:', halomass.min())
+    print('Maximum halo mass:', halomass.max())
+   
+    #halomass_filter=halomass
+    logmh=np.log10(halomass)
+    logmh=np.array([int(logmh[key]) for key in range(nhalo)])
+    
+  
+    z_max = nproj*cellsize # See slice() above
+
+    mask = z_halos < z_max
+    x_halos = x_halos[mask]
+    y_halos = y_halos[mask]
+    halomass_slice = logmh[mask]
+    
+
+   
+    mass_cut=halomass_slice >= halo_cutoff_mass_log
+    halomass_slice_cut=halomass_slice[mass_cut]
+    x_halos_cut= x_halos[mass_cut]
+    y_halos_cut= y_halos[mass_cut]
+    
+    lcp=mhalo_to_lcp(halo_redshift, halomass_slice_cut, kind='mean',use_scatter=use_scatter)
+    
+    xdegree=utils.boxsize_to_degree(halo_redshift,x_halos_cut )
+    ydegree=utils.boxsize_to_degree(halo_redshift,y_halos_cut)
+    
+    if(saved_file_name==None):
+        fname=("luminosity_CII_nproj_%d_z%1.2f" %(nproj, halo_redshift))
+    else:
+        fname=saved_file_name
+    
+    if(save_unit=='mpc'):
+        np.savez(fname,x=x_halos_cut,y=y_halos_cut, luminosity=lcp)
+    if(save_unit=='degree'):
+        np.savez(fname,x=xdegree,y=ydegree, luminosity=lcp)
 
 
+       
+def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_cutoff_mass_log=11, use_scatter=True, unit='degree'):
+    '''
+    Calculate luminosity for input parameters
+    '''
+    #low_mass_log=0.0
+    cellsize = boxsize/ngrid
+    
+    halomass, halo_cm=make_halocat(halocat_file,filetype='dat',boxsize=boxsize)
+    
+    nhalo=len(halomass)
+    # Overplot halos 
+    x_halos = halo_cm[range(0,nhalo*3,3)]
+    y_halos = halo_cm[range(1,nhalo*3,3)]
+    z_halos = halo_cm[range(2,nhalo*3,3)]
+   
+    print('Minimum halo mass:', halomass.min())
+    print('Maximum halo mass:', halomass.max())
+   
+    #halomass_filter=halomass
+    logmh=np.log10(halomass)
+    logmh=np.array([int(logmh[key]) for key in range(nhalo)])
+    
+  
+    z_max = nproj*cellsize # See slice() above
 
-def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_cutoff_mass_log=11, use_scatter=True,
+    mask = z_halos < z_max
+    x_halos = x_halos[mask]
+    y_halos = y_halos[mask]
+    halomass_slice = logmh[mask]
+    
+
+   
+    mass_cut=halomass_slice >= halo_cutoff_mass_log
+    halomass_slice_cut=halomass_slice[mass_cut]
+    x_halos_cut= x_halos[mass_cut]
+    y_halos_cut= y_halos[mass_cut]
+    
+    lcp=mhalo_to_lcp(halo_redshift, halomass_slice_cut, kind='mean',use_scatter=use_scatter)
+    
+    xdegree=utils.boxsize_to_degree(halo_redshift,x_halos_cut )
+    ydegree=utils.boxsize_to_degree(halo_redshift,y_halos_cut)
+    
+    if(unit=='mpc'):
+        return x_halos_cut, y_halos_cut, lcp
+    if(unit=='degree'):
+        return xdegree, ydegree, lcp
+
+
+def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,halo_cutoff_mass_log=11, use_scatter=True,
                density_plot=False, halo_overplot=False, plot_lines=False, tick_label='mpc'):
     """
     Plot a slice of gas density field and overplot the distribution of
@@ -284,7 +407,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
     boxsize: size of box in Mpc
     ngrid: number of grids along the one axis of simulation box
     nproj: cells to project (values could range from 1 to the ngrid)
-    halocat: path to halo catalogue file (full path) 
+    halocat_file: path to halo catalogue file (full path) 
     halo_redshift: redshift of halos
     halo_cutoff_mass_log: cutt off mass of the halos
     density_plot: If true, plot the density distribution
@@ -393,7 +516,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
         
        
     
-        halomass, halo_cm=make_halocat(halocat,filetype='dat',boxsize=boxsize)
+        halomass, halo_cm=make_halocat(halocat_file,filetype='dat',boxsize=boxsize)
         
         nhalo=len(halomass)
         # Overplot halos 
@@ -401,8 +524,8 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
         y_halos = halo_cm[range(1,nhalo*3,3)]
         z_halos = halo_cm[range(2,nhalo*3,3)]
        
-        print 'Minimum halo mass:', halomass.min()
-        print 'Maximum halo mass:', halomass.max()
+        print('Minimum halo mass:', halomass.min())
+        print('Maximum halo mass:', halomass.max())
         
                 #halomass_filter=halomass
         logmh=np.log10(halomass)
@@ -491,15 +614,15 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
                        cmap=plt.cm.gist_yarg, vmax=3.0, vmin=-3.0, alpha=0.9)
         
             
-        halomass, halo_cm=make_halocat(halocat,filetype='dat',boxsize=boxsize)
+        halomass, halo_cm=make_halocat(halocat_file,filetype='dat',boxsize=boxsize)
         nhalo=len(halomass)
         # Overplot halos 
         x_halos = halo_cm[range(0,nhalo*3,3)]
         y_halos = halo_cm[range(1,nhalo*3,3)]
         z_halos = halo_cm[range(2,nhalo*3,3)]
        
-        print 'Minimum halo mass:', halomass.min()
-        print 'Maximum halo mass:', halomass.max()
+        print('Minimum halo mass:', halomass.min())
+        print('Maximum halo mass:', halomass.max())
         
         #halomass_filter=halomass
         logmh=np.log10(halomass)
@@ -581,3 +704,206 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat,halo_redshift,halo_
     plt.savefig("slice_plot.pdf",bbox_inches='tight')
   
 
+'''
+f=np.load('luminosity_CII_nproj_10_z7.02.npz')
+xl=f['x']
+yl=f['y']
+lum=f['luminosity']
+'''
+
+
+'''
+gauss = Gaussian2D(1, 0, 0, 1, 1)
+
+gauss_kernel = Gaussian2DKernel(3)
+
+
+xl, yl = np.meshgrid(xl, yl)
+
+data_2D = gauss(xl, yl)
+
+
+smoothed_data_gauss = convolve(data_2D, gauss_kernel)
+fig, ax = plt.subplots(figsize=(5, 5))
+res=plt.imshow(smoothed_data_gauss, cmap='YlOrRd', interpolation='none',origin='lower')
+
+
+plt.colorbar(res, ax=ax)
+'''
+
+
+def plot_ast():
+    fig, ax1 = plt.subplots(figsize=(5,5))
+    
+    # Fake image data including noise
+    x = np.arange(0, 100)
+    y = np.arange(0, 100)
+    gauss1 = Gaussian2D(100, 50, 50, 1, 1)
+    gauss2 = Gaussian2D(20, 10, 20, 1, 1)
+    x, y = np.meshgrid(x, y)
+    data1 = gauss1(x, y) 
+    data2 = gauss2(x, y) 
+    gauss_kernel = Gaussian2DKernel(5)
+    smoothed1= convolve(data1, gauss_kernel)
+    smoothed2= convolve(data2, gauss_kernel)
+    sm=[smoothed1,smoothed2]
+    for i in range(2):
+        res1=ax1.imshow(sm[i], cmap='hot', interpolation='none', origin='lower',alpha=0.2)
+    #res2=ax1.imshow(smoothed2, cmap='hot', interpolation='none', origin='lower',alpha=0.2)
+    
+    
+    #res1=plt.scatter(x,y,c=smoothed_data_gauss,cmap='Blues')
+    plt.colorbar(res1, ax=ax1)
+
+
+'''
+plot beam(x_halo,y_halo, luminosity):
+    gauss = Gaussian2D(10, 50, 50, 1, 1)
+'''
+
+
+
+
+
+
+def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_redshift, halo_cutoff_mass_log=11, 
+              use_scatter=True, unit='degree', add_noise=False, random_noise_parcentage=None):
+    
+    xl, yl, lum=calc_luminosity(boxsize, ngrid, nproj,halocat_file, halo_redshift, 
+                                halo_cutoff_mass_log=halo_cutoff_mass_log, use_scatter=use_scatter, unit=unit)
+    '''
+    global beam_vec,gauss_beam, final_conv, lum
+    f=np.load('luminosity_CII_nproj_10_z7.02.npz')
+    xl=f['x']
+    yl=f['y']
+    lum=f['luminosity']
+    luminosity_max=lum.max()
+    '''
+    if(beam_unit=='arcmin' or beam_unit=='arcminute' or beam_unit=='minute'):
+        print("Theta FWHM (arc-min):", theta_fwhm) 
+        theta=theta_fwhm
+    if(beam_unit=='second' or beam_unit=='arcsecond' or beam_unit=='arcsec'):
+        print("Theta FWHM (arc-second):", theta_fwhm) 
+        theta=theta_fwhm/60.0
+
+    luminosity_max=lum.max()
+    x_arc=xl*60
+    y_arc=yl*60
+    
+    sx=0.03*(lum**3) #keep it 0.03*(lum**3) 
+    sy=0.03*(lum**3)  #keep it 0.03*(lum**3) 
+   
+    beam_std=theta/(np.sqrt(8*np.log(2.0)))
+    gauss_kernel = Gaussian2DKernel(beam_std)
+    
+    x_p=np.linspace(0,x_arc.max(),num=500)
+    y_p=np.linspace(0,y_arc.max(),num=500)
+    
+    x_p,y_p=np.meshgrid(x_p,y_p)
+    
+    def beam(amp,x,y,sx,sy):
+        gauss_b = Gaussian2D(amp,x,y,sx,sy)
+        return gauss_b
+     
+    def beam_conv(amp,x,y,sx,sy, x_p,y_p, kernel=gauss_kernel):
+        gauss = Gaussian2D(amp,x,y,sx,sy)
+        gauss_data=gauss(x_p,y_p)
+        smoothed_data= convolve(gauss_data, gauss_kernel)
+        return smoothed_data
+    
+    flen=len(x_p)
+    lum_len=len(lum)
+    if(add_noise==False and random_noise_parcentage==None):
+        final_conv=0.001*np.ones([flen,flen])
+    if(add_noise==True):
+        #final_conv=random_noise_parcentage *lum.max()* (np.random.rand(flen, flen)-0.5)
+        final_conv=0.001*np.ones([flen,flen])
+    for i in range(lum_len):
+        b= beam(lum[i],x_arc[i],y_arc[i],sx[i],sy[i])
+        gauss_data=b(x_p,y_p)
+        if(add_noise==False and random_noise_parcentage==None):
+            final_conv=gauss_data+final_conv
+        if(add_noise==True):
+            final_conv=gauss_data+final_conv+random_noise_parcentage *luminosity_max* (np.random.rand(flen, flen)-0.5)
+        final_conv=convolve(final_conv,gauss_kernel)
+        
+   
+    fig, ax = plt.subplots(figsize=(5,5))
+    #norm = cm.colors.Normalize(5,6)
+    
+    res=ax.imshow(final_conv, cmap='gist_heat', interpolation='gaussian',origin='lower', vmin=0.1, vmax=10.0, rasterized=True, alpha=0.9)
+    
+    
+    labels = [str(xx) for xx in range(0, 513,70)]
+    locs = [xx for xx in range(0, 513, 70)]
+
+    plt.xticks(locs, labels)
+    plt.yticks(locs, labels)
+    plt.xlabel('arc-min')
+    plt.ylabel('arc-min')
+
+
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", "5%", pad="3%")
+    cb = plt.colorbar(res, cax=cax)
+    cb.set_label(r'$L_{CII}$', labelpad=20)
+    cb.solids.set_edgecolor("face")
+    cb.ax.tick_params('both', which='major', length=3, width=1, direction='out')
+    plt.savefig("luminsoty_beam.png")
+    
+    
+
+
+'''
+f=np.load('luminosity_CII_nproj_10_z7.02.npz')
+xl=f['x']
+yl=f['y']
+lum=f['luminosity']
+
+x_arc=xl*60
+y_arc=yl*60
+
+sx=1
+sy=1
+
+theta_arcmin=1.0
+
+beam_std=theta_arcmin/(np.sqrt(8*np.log(2.0)))
+gauss_kernel = Gaussian1DKernel(beam_std)
+
+
+
+
+
+am=[1,2,3]
+xx=[1,2,3]
+yy=[1,2,3]
+xx1,yy1=np.meshgrid(xx,yy)
+sx=5*np.ones(len(am))
+sy=5*np.ones(len(am))
+
+def beam(amp,x,y,sx,sy):
+    gauss_b = Gaussian2D(amp,x,y,sx,sy)
+    return gauss_b
+
+
+p=beam(lum,x_arc,y_arc,sx,sy)
+
+
+g=p(x_arc,y_arc)
+smoothed_data= convolve(g, gauss_kernel)
+
+
+fig, ax1 = plt.subplots(figsize=(5,5))
+#norm = cm.colors.Normalize(5,6)
+
+#res1=ax1.imshow(smoothed_data, cmap='hot', interpolation='None', alpha=0.2, origin='lower')
+
+res1=plt.scatter(x_arc,y_arc, s=smoothed_data,c=p(x_arc,y_arc),cmap='hot')
+   
+plt.colorbar(res1, ax=ax1)
+
+plt.xlim(0, 170)
+plt.ylim(0, 170)
+
+'''
