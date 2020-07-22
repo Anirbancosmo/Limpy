@@ -50,6 +50,15 @@ default_lcp_scatter_params={
        }
 
 
+default_lot_scatter_params={
+	   'a_off':7.4,
+       'a_std':0.16,
+       'b_off':0.97,
+       'b_std':0.09
+}
+
+
+
 # Parameters for SFR-LCII relation from Chung et. al 2020
 default_lcp_chung_params={
         'a': 1.4,

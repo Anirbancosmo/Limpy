@@ -1,12 +1,14 @@
 README.md
 setup.py
-limpy/Lot.py
+limpy/LOIII.py
 limpy/__init__.py
 limpy/cosmos.py
 limpy/lco.py
 limpy/lcp.py
 limpy/params.py
 limpy/plotsettings.py
+limpy/simulation.py
+limpy/theory.py
 limpy/utils.py
 limpy.egg-info/PKG-INFO
 limpy.egg-info/SOURCES.txt

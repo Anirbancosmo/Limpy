@@ -10,8 +10,9 @@ import numpy as np
 
 import params as p
 import scipy.integrate as si
-
-
+import camb
+from camb import model, initialpower
+from camb import get_matter_power_interpolator
 class cosmo():
     
     def __init__(self):
@@ -19,7 +20,8 @@ class cosmo():
         self.ol=p.cosmo_params['omega_lambda']
         self.ob=p.cosmo_params['omgega_bh2']/self.h**2
         self.om=p.cosmo_params['omega_mh2']/self.h**2
-        
+        self.ocdm=p.cosmo_params['omgega_ch2']/self.h**2
+        self.ns=p.cosmo_params['ns']
         self.H0=100*self.h # Km/S/Mpc
            
         if p.cosmo_params['omega_k'] is not None:
@@ -47,6 +49,7 @@ class cosmo():
         return 100*self.h*np.sqrt(self.om*(1+z)**3+self.ok*(1+z)**2+self.ol)\
                 *self.km_to_m/self.mpc_to_m
 
+    
     def D_co_unvec(self,z):
         '''
         Comoving distance transverse.
@@ -94,10 +97,26 @@ class cosmo():
         
         return [self.D_angular(z[i])/(1+z[i])**2 for i in(len[z])]
     
-            
+    def pk_camb(self,k,z, kmax=10.0):       
+        pars = camb.CAMBparams()
+        pars.set_cosmology(H0=100*self.h, ombh2=self.ob*self.h**2, omch2=self.ocdm*self.h**2)
+        pars.InitPower.set_params(ns=self.ns)
+
+        pars.set_matter_power(redshifts=[z], kmax=kmax)
         
-            
-            
+        PK = get_matter_power_interpolator(pars);
+    
+        return PK.P(z,k)
+        
+        
+        '''
+        if(spectra=='nonlinear'):
+            #Non-Linear spectra (Halofit)
+            pars.NonLinear = model.NonLinear_both
+            results.calc_power_spectra(pars)
+            kh_nonlin, z_nonlin, pk_nonlin = results.get_matter_power_spectrum(minkh=1e-4, maxkh=1, npoints = 200)
+            return kh_nonlin, z_nonlin, pk_nonlin
+        '''
     
 # To test the code with Cosmolopy   
 
