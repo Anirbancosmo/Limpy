@@ -12,6 +12,7 @@ from matplotlib import cm
 from astropy.convolution import convolve, Gaussian2DKernel, Tophat2DKernel, Gaussian1DKernel
 from astropy.modeling.models import Gaussian2D
 
+
 def read_sfr(SFR_filename):
     """
     This takes a SFR file in Universemachine Output format
@@ -32,6 +33,7 @@ def read_sfr(SFR_filename):
     z=1.0/scale_fac-1.0
  
     return z, SFR, error_SFR_up, error_SFR_down
+
 
 
 def make_hlist_ascii_to_npz(hlist_path_ascii, saved_filename=None):
@@ -192,6 +194,8 @@ def mhalo_to_lcp(z,logMh, kind='mean',use_scatter=True):
     Kind optitions takes the SFR: mean , up (1-sigma upper bound) and
     down (1-sigma lower bound)
     """
+    #if
+    
     mhlen=len(logMh)
     result=np.zeros(mhlen)
     
@@ -335,8 +339,8 @@ def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_
     
     lcp=mhalo_to_lcp(halo_redshift, halomass_slice_cut, kind='mean',use_scatter=use_scatter)
     
-    xdegree=utils.boxsize_to_degree(halo_redshift,x_halos_cut )
-    ydegree=utils.boxsize_to_degree(halo_redshift,y_halos_cut)
+    xdegree=utils.physical_boxsize_to_degree(halo_redshift,x_halos_cut )
+    ydegree=utils.physical_boxsize_to_degree(halo_redshift,y_halos_cut)
     
     if(saved_file_name==None):
         fname=("luminosity_CII_nproj_%d_z%1.2f" %(nproj, halo_redshift))
@@ -389,8 +393,8 @@ def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_cutoff
     
     lcp=mhalo_to_lcp(halo_redshift, halomass_slice_cut, kind='mean',use_scatter=use_scatter)
     
-    xdegree=utils.boxsize_to_degree(halo_redshift,x_halos_cut )
-    ydegree=utils.boxsize_to_degree(halo_redshift,y_halos_cut)
+    xdegree=utils.comoving_boxsize_to_degree(halo_redshift,x_halos_cut )
+    ydegree=utils.comoving_boxsize_to_degree(halo_redshift,y_halos_cut)
     
     if(unit=='mpc'):
         return x_halos_cut, y_halos_cut, lcp
@@ -461,7 +465,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
             
             xmin=0
             ymin=0
-            xmax=ymax=utils.boxsize_to_degree(halo_redshift, boxsize)
+            xmax=ymax=utils.comoving_boxsize_to_degree(halo_redshift, boxsize)
             
             N=4
             xtick_mpc=ytick_mpc=np.linspace(0, boxsize, N)
@@ -558,7 +562,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
             
             xmin=0
             ymin=0
-            xmax=ymax=utils.boxsize_to_degree(halo_redshift, boxsize)
+            xmax=ymax=utils.comoving_boxsize_to_degree(halo_redshift, boxsize)
             
             N=4
             xtick_mpc=ytick_mpc=np.linspace(0, boxsize, N)
@@ -666,7 +670,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
             
             xmin=0
             ymin=0
-            xmax=ymax=utils.boxsize_to_degree(halo_redshift, boxsize)
+            xmax=ymax=utils.comoving_boxsize_to_degree(halo_redshift, boxsize)
             
             N=4
             xtick_mpc=ytick_mpc=np.linspace(0, boxsize, N)
@@ -706,12 +710,14 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
   
 
 
-
 def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_redshift, halo_cutoff_mass_log=11, 
-              use_scatter=True, unit='degree', add_noise=False, random_noise_parcentage=None):
+              use_scatter=True, unit='degree', plot_unit='minute', tick_num=5, add_noise=False, random_noise_parcentage=None):
     
     
     global final_cov
+    #mtd=p.default_constants['minute_to_degree']
+    dtm=p.default_constants['degree_to_minute']
+    
     xl, yl, lum=calc_luminosity(boxsize, ngrid, nproj,halocat_file, halo_redshift, 
                                 halo_cutoff_mass_log=halo_cutoff_mass_log, use_scatter=use_scatter, unit=unit)
 
@@ -723,8 +729,8 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
         theta=theta_fwhm/60.0
 
     luminosity_max=lum.max()
-    x_arc=xl*60
-    y_arc=yl*60
+    x_arc=xl*dtm
+    y_arc=yl*dtm
     
     sx=0.03*(lum**3) #keep it 0.03*(lum**3) 
     sy=0.03*(lum**3)  #keep it 0.03*(lum**3) 
@@ -767,29 +773,33 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
    
     fig, ax = plt.subplots(figsize=(7,7),dpi=100)
  
-    res=ax.imshow(final_conv, cmap='gist_heat', interpolation='gaussian',origin='lower', vmin=0.1, vmax=10.0, rasterized=True, alpha=0.9)
+    res=ax.imshow(final_conv, cmap='gist_heat', interpolation='gaussian',origin='lower', rasterized=True, alpha=0.9)
     
+        
+    if(plot_unit=='degree'):
+        x_tick=(utils.comoving_boxsize_to_degree(halo_redshift, boxsize))
+        cell_size=x_tick/ngrid
+        ticks=np.linspace(0, x_tick,num=tick_num)
+        labels = [str("{:.1e}".format(xx)) for xx in ticks]
+        locs = [xx/cell_size for xx in ticks]
+        plt.xlabel('degree')
+        plt.ylabel('degree')
+
+        
+    if(plot_unit=='minute'):
+        x_tick=(dtm*utils.comoving_boxsize_to_degree(halo_redshift, boxsize))
+        cell_size=x_tick/ngrid
+        ticks=np.linspace(0, x_tick,num=tick_num)
+        labels = [str("{:.1f}".format(xx)) for xx in ticks]
+        locs = [xx/cell_size for xx in ticks]
+        plt.xlabel('arc-min')
+        plt.ylabel('arc-min')
+
     
-    x_minutes=(60*utils.boxsize_to_degree(halo_redshift, boxsize))
-    #ydegree=utils.boxsize_to_degree(halo_redshift, boxsize)
-    tick_num=5
-    #step=int(x_minutes/tick_num)
-    
-    ticks=np.linspace(0, x_minutes,num=tick_num)
-    
-    
-    #cell_size=boxsize/float(ngrid)
-    cell_size=x_minutes/ngrid
-    
-    labels = [str(int(xx)) for xx in ticks]
-    #locs = [int(xx) for xx in ticks]
-    locs = [xx/cell_size for xx in ticks]
 
     plt.xticks(locs, labels)
     plt.yticks(locs, labels)
-    plt.xlabel('arc-min')
-    plt.ylabel('arc-min')
-
+    
     title = '$z={:g}$'.format(halo_redshift)
     plt.title(title, fontsize=18)
     
@@ -800,4 +810,3 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     cb.solids.set_edgecolor("face")
     cb.ax.tick_params('both', which='major', length=3, width=1, direction='out')
     plt.savefig("luminsoty_beam.png")
-    

@@ -18,8 +18,28 @@ cosmo_params={
         'omgega_ch2': 0.11933,
         'omega_mh2' : 0.14240,
         'omega_k': -0.05,
-        'tau': 0.0561,      
+        'tau': 0.0561,   
+        'ns': 0.965
         }
+
+code_params={
+        'use_scatter': False,
+        'use_pk': 'linear' # or nonlinear
+    }
+
+
+astro_params={
+        'Mmin': 1e11,
+        'Mmax': 1e15,
+        'Lsun': 3.828e26, #watts
+        'delta_c':1.686,
+        'halo_model': 'Tinker08'
+        }
+
+
+line_frequency={
+    'nu_CII': 1900 #GHz
+    }
 
 
 default_lcp_scatter_params={
@@ -52,8 +72,13 @@ default_constants={
         
         # distances
         'mpc_to_m': 3.086e+22, # meter
+        'm_to_mpc': 3.24e-23, # Mpc
         
-        'km_to_m': 1e3 #meter
+        'km_to_m': 1e3, #meter
+        'minute_to_degree': 1.0/60,
+        'degree_to_minute': 60.0,
+        'GHz_to_Hz': 1e9,
+        'Jy': 1e-26 # Watts. m^{-2} HZ^{-1}
         
         }
 
