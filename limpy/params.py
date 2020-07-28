@@ -70,7 +70,7 @@ default_lcp_chung_params={
 
 # dummy values to extend the SFR-Mhalo relation when halomass goes below M_min
 default_dummy_values={
-        'log_lcp_low': 0.0
+        'lcp_low': 1e-12
         }
 
 

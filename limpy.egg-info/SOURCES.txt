@@ -5,6 +5,7 @@ limpy/__init__.py
 limpy/cosmos.py
 limpy/lco.py
 limpy/lcp.py
+limpy/make_sfr_files.py
 limpy/params.py
 limpy/plotsettings.py
 limpy/simulation.py

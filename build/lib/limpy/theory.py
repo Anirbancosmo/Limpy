@@ -34,6 +34,9 @@ use_scatter=p.code_params['use_scatter']
 
 
 cosmo=cosmos.cosmo()
+
+
+
 def hmf(z):
     '''Shet, Mo &  Tormen 2001'''
     mf=MassFunction(z=z,Mmin=np.log10(Mmin), Mmax=np.log10(Mmax), hmf_model= Halo_model)
@@ -208,80 +211,8 @@ def sfr_to_lcp_nonscatter_chung(z, sfr):
     return log_lcp
 
 
-def mhalo_to_sfr(logMh):
-    """
-    Returns the SFR history for discrete values of halo mass.
-    
-    logMh values should be integrer values between 11 to 15 
-    (check the resonable redshift so that data is ava)
-    
-    
-    #TODO: Make it a continuous function so that we can interpolate smoothly 
-    between Mmin=10^9 to 10^15
-    """
-    
-    sfr_filepath='../data/sfh_z0_z8/sfr/'
-    if logMh==9:
-        sfr_fname=sfr_filepath+'sfr_corrected_9.0.dat'
-        z_sfr, SFR= read_sfr_lowm(sfr_fname)
-    if logMh==10:
-        sfr_fname=sfr_filepath+'sfr_corrected_10.0.dat'
-        z_sfr, SFR= read_sfr_lowm(sfr_fname)
-        
-    if logMh==11:
-        sfr_fname=sfr_filepath+'sfr_corrected_11.0.dat'
-        z_sfr, SFR, error_SFR_up, error_SFR_down= read_sfr_highm(sfr_fname)
-    if logMh==12:
-        sfr_fname=sfr_filepath+'sfr_corrected_12.0.dat'
-        z_sfr, SFR, error_SFR_up, error_SFR_down= read_sfr_highm(sfr_fname)
-        
-    if logMh==13:
-        sfr_fname=sfr_filepath+'sfr_corrected_13.0.dat'
-        z_sfr, SFR, error_SFR_up, error_SFR_down= read_sfr_highm(sfr_fname)
-        
-    if logMh==14:
-        sfr_fname=sfr_filepath+'sfr_corrected_14.0.dat'
-        z_sfr, SFR, error_SFR_up, error_SFR_down= read_sfr_highm(sfr_fname)
-        
-    if logMh==15:
-        sfr_fname=sfr_filepath+'sfr_corrected_15.0.dat'           
-        z_sfr, SFR, error_SFR_up, error_SFR_down= read_sfr_highm(sfr_fname)
-    
-    return z_sfr, SFR
-    
 
-def mhalo_to_lcp(z,logMh, use_scatter=use_scatter):
-    """
-    this function returns luminosity of CII lines in the unit of L_sun.
-    Kind optitions takes the SFR: mean , up (1-sigma upper bound) and
-    down (1-sigma lower bound)
-    """
-    #if
-    
-    mhlen=len(logMh)
-    result=np.zeros(mhlen)
-    
-    log_lcp_low=p.default_dummy_values['log_lcp_low']
-    for i in range(mhlen):
-        logMh_val=logMh[i]
-        
-        if logMh_val<9:
-            lcp=log_lcp_low
-            
-        elif(logMh_val>=9):
-            z_sfr, SFR_mean=mhalo_to_sfr(logMh_val)
-            SFR_mean=np.interp(z,z_sfr,SFR_mean)
-            
-            if(use_scatter==True):
-                lcp=sfr_to_lcp_scatter(z,SFR_mean)
-            if(use_scatter==False):
-                lcp=sfr_to_lcp_nonscatter(z,SFR_mean)
-          
-        result[i]=lcp   
-    return result
-
-
-def mhalo_to_lcp_fit(z,Mhalo, use_scatter=use_scatter):
+def mhalo_to_lcp_fit(Mhalo,z, use_scatter=use_scatter):
     Mhalo=np.array(Mhalo)
     M1_m, M1_std=2.39e-5, 1.86e-5
     N1_m, N1_std=4.19e11, 3.27e11
@@ -304,9 +235,9 @@ def mhalo_to_lcp_fit(z,Mhalo, use_scatter=use_scatter):
 
 def I_nu(z,nu_rest_line,z_line=0.0):
     
-    mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
+    #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
     mass_bin, dndm= hmf(z)
-    L_line=mhalo_to_lcp_fit(z, mass_bin, use_scatter=use_scatter)
+    L_line=mhalo_to_lcp_fit(mass_bin, z, use_scatter=use_scatter)
     L_line*=Lsun
     #print(mass_bin)
     
@@ -318,11 +249,35 @@ def I_nu(z,nu_rest_line,z_line=0.0):
     integration=simps(integrand, mass_bin)
     
     return (integration)/(jy_unit)
+
+
+
+def I_nu_sim(z,nu_rest_line,z_line=0.0):
+    
+    #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
+    mass_bin, dndm= hmf(z)
+    L_line=ll.mhalo_to_lcp(mass_bin, z, use_scatter=use_scatter)
+    L_line*=Lsun
+    #print(mass_bin)
+    
+    factor= (c_in_m)/(4*1e9*np.pi*nu_rest_line*cosmo.H_z(z_line))
+    
+    integrand=(factor * dndm * L_line * (mpc_to_m)**-3) * small_h**4
+    
+    
+    integration=simps(integrand, mass_bin)
+    
+    return (integration)/(jy_unit)
+
+
+
+
+
     
 def P_shot(z):
-    mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
+    #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
     mass_bin, dndm= hmf(z)
-    L_line=mhalo_to_lcp_fit(z, mass_bin, use_scatter=use_scatter)
+    L_line=mhalo_to_lcp_fit(mass_bin, z, use_scatter=use_scatter)
     L_line*=Lsun
     integrand_numerator=dndm*small_h**4*(L_line)**2
     
@@ -360,7 +315,7 @@ def bias_dm(m,z):
     
 def b_line(z):
     mass_bin, dndm= hmf(z)
-    L_line=mhalo_to_lcp_fit(z, mass_bin, use_scatter=use_scatter)
+    L_line=mhalo_to_lcp_fit(mass_bin, z, use_scatter=use_scatter)
     L_line*=Lsun
     
     integrand_numerator=dndm*small_h**4*(L_line)*bias_dm(mass_bin, z)

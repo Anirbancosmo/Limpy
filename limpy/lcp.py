@@ -9,10 +9,26 @@ import matplotlib as mpl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import utils  
 from matplotlib import cm
-from astropy.convolution import convolve, Gaussian2DKernel, Tophat2DKernel, Gaussian1DKernel
+from astropy.convolution import convolve, Gaussian2DKernel
 from astropy.modeling.models import Gaussian2D
+from scipy.interpolate import RectBivariateSpline
 
+import matplotlib.colors as colors
 
+use_scatter=p.code_params['use_scatter']
+lcp_low=p.default_dummy_values['lcp_low']
+
+sfr_filepath='../data/'
+z,m,sfr=np.loadtxt(sfr_filepath+'sfr_beherozzi.dat', unpack=True)
+
+zlen=137 #manually checked 
+mlen=int(len(z)/zlen)
+zn=z[0:zlen]
+mhn=m.reshape(mlen,zlen)[:,0]
+sfrn=sfr.reshape(mlen,zlen)
+sfr_interpolation=RectBivariateSpline(mhn, zn, sfrn)
+
+ 
 def read_sfr(SFR_filename):
     """
     This takes a SFR file in Universemachine Output format
@@ -36,7 +52,7 @@ def read_sfr(SFR_filename):
 
 
 
-def make_hlist_ascii_to_npz(hlist_path_ascii, saved_filename=None):
+def make_hlist_ascii_to_npz(hlist_path_ascii, filename=None):
     """ 
     Takes a hlist file in the form of Universemachine format and tranforms 
     to a npz file with necessary quantities.
@@ -48,13 +64,13 @@ def make_hlist_ascii_to_npz(hlist_path_ascii, saved_filename=None):
     """
     
     # reads only scale factor, halomass,x,y and z from the ascii file used in Universe machine
-    data=np.loadtxt(hlist_path_ascii,usecols=(0,10,17,18,19))  
+    data=np.loadtxt(hlist_path_ascii)  
     
     # save the file in npz format either in mentioned filename or in original ascii filename
-    if saved_filename:
-        np.savez("hlist_0.12650.npz",a=data[:,0],m=data[:,1],x=data[:,2],y=data[:,3],z=data[:,4])
+    if filename:
+        np.savez(filename,m=data[:,0],x=data[:,1],y=data[:,2],z=data[:,3])
     else:
-        np.savez(hlist_path_ascii,a=data[:,0],m=data[:,1],x=data[:,2],y=data[:,3],z=data[:,4])
+        np.savez(hlist_path_ascii,m=data[:,0], x=data[:,1], y=data[:,2], z=data[:,3])
     return
     
 
@@ -106,7 +122,7 @@ def sfr_to_lcp_scatter(z, sfr,a_off=p.default_lcp_scatter_params['a_off'],a_std=
         a= np.random.normal(a_off,a_std)
         b= np.random.normal(b_off,b_std)
         log_L_cp[i]=(a+b*np.log10(sfr[i]))
-    return log_L_cp
+    return 10**log_L_cp
 
    
 
@@ -132,7 +148,7 @@ def sfr_to_lcp_nonscatter(z, sfr,a_off=p.default_lcp_scatter_params['a_off'],b_o
     
     for i in range(sfr_len):
         log_L_cp[i]=(a+b*np.log10(sfr[i]))
-    return log_L_cp
+    return 10**log_L_cp
 
 
 def sfr_to_lcp_nonscatter_chung(z, sfr):
@@ -152,43 +168,21 @@ def sfr_to_lcp_nonscatter_chung(z, sfr):
     alpha_z= a-b*z
     beta_z= c- d*z
     log_lcp=alpha_z*np.log10(sfr)+beta_z
-    return log_lcp
+    return 10**log_lcp
 
-
-def mhalo_to_sfr(logMh):
+    
+def mhalo_to_sfr(m,z):
     """
     Returns the SFR history for discrete values of halo mass.
-    
-    logMh values should be integrer values between 11 to 15 
-    (check the resonable redshift so that data is ava)
-    
-    
-    #TODO: Make it a continuous function so that we can interpolate smoothly 
-    between Mmin=10^9 to 10^15
     """
     
-    sfr_filepath='../data/sfh_z0_z8/sfr/'
-        
-    if logMh==11:
-        sfr_fname=sfr_filepath+'sfr_corrected_11.0.dat'
-    if logMh==12:
-        sfr_fname=sfr_filepath+'sfr_corrected_12.0.dat'
-        
-    if logMh==13:
-        sfr_fname=sfr_filepath+'sfr_corrected_13.0.dat'
-        
-    if logMh==14:
-        sfr_fname=sfr_filepath+'sfr_corrected_14.0.dat'
-        
-    if logMh==15:
-        sfr_fname=sfr_filepath+'sfr_corrected_15.0.dat'           
-        
-    z_sfr, SFR, error_SFR_up, error_SFR_down= read_sfr(sfr_fname)
+    res=sfr_interpolation(m,z) 
     
-    return z_sfr, SFR, (SFR-error_SFR_down), (SFR+error_SFR_up)
-    
+    res=np.where(res<1e-4, lcp_low, res)
+    return res.flatten()
 
-def mhalo_to_lcp(z,logMh, kind='mean',use_scatter=True):
+
+def mhalo_to_lcp(Mh, z, use_scatter=use_scatter):
     """
     this function returns luminosity of CII lines in the unit of L_sun.
     Kind optitions takes the SFR: mean , up (1-sigma upper bound) and
@@ -196,39 +190,15 @@ def mhalo_to_lcp(z,logMh, kind='mean',use_scatter=True):
     """
     #if
     
-    mhlen=len(logMh)
-    result=np.zeros(mhlen)
+    SFR_mean=mhalo_to_sfr(Mh,z)
     
-    log_lcp_low=p.default_dummy_values['log_lcp_low']
-    for i in range(mhlen):
-        logMh_val=logMh[i]
-        
-        if logMh_val<11:
-            lcp=log_lcp_low
-            
-        elif(logMh_val>=11):
-            z_sfr, SFR_mean, SFR_down, SFR_up=mhalo_to_sfr(logMh_val)
-            SFR_mean=np.interp(z,z_sfr,SFR_mean)
-            SFR_up=np.interp(z,z_sfr,SFR_up)
-            SFR_down=np.interp(z,z_sfr,SFR_down)
-            
-            if(use_scatter==True and kind=='mean'):
-                lcp=sfr_to_lcp_scatter(z,SFR_mean)
-            if(use_scatter==True and kind=='up'):
-                lcp =sfr_to_lcp_scatter(z,SFR_up)
-            if(use_scatter==True and kind=='down'):
-                lcp=sfr_to_lcp_scatter(z,SFR_down)
-                
-            if(use_scatter==False and kind=='mean'):
-                lcp=sfr_to_lcp_nonscatter(z,SFR_mean)
-            if(use_scatter==False and kind=='up'):
-                lcp =sfr_to_lcp_nonscatter(z,SFR_up)
-            if(use_scatter==False and kind=='down'):
-                lcp=sfr_to_lcp_nonscatter(z,SFR_down)
-            
-        result[i]=lcp
-        
-    return result
+    if(use_scatter==True):
+        lcp=sfr_to_lcp_scatter(z,SFR_mean)
+    if(use_scatter==False):
+        lcp=sfr_to_lcp_nonscatter(z,SFR_mean)
+
+    return lcp
+
 
 
 def slice(datacube, ngrid, nproj, option='C'):
@@ -303,7 +273,7 @@ def plot_sfr_mhalo(Mhalo_array_logscale,colorlist=None,figname=None):
         plt.savefig("z_sfr_mhalo.png")
         
        
-def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_cutoff_mass_log=11, use_scatter=True,save_unit='degree',saved_file_name=None):
+def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_cutoff_mass=1e11, use_scatter=True,save_unit='degree',saved_file_name=None):
     #low_mass_log=0.0
     cellsize = boxsize/ngrid
     
@@ -319,8 +289,8 @@ def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_
     print('Maximum halo mass:', halomass.max())
    
     #halomass_filter=halomass
-    logmh=np.log10(halomass)
-    logmh=np.array([int(logmh[key]) for key in range(nhalo)])
+    #logmh=np.log10(halomass)
+    #logmh=np.array([int(logmh[key]) for key in range(nhalo)])
     
   
     z_max = nproj*cellsize # See slice() above
@@ -328,16 +298,16 @@ def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_
     mask = z_halos < z_max
     x_halos = x_halos[mask]
     y_halos = y_halos[mask]
-    halomass_slice = logmh[mask]
+    halomass_slice = halomass[mask]
     
 
    
-    mass_cut=halomass_slice >= halo_cutoff_mass_log
+    mass_cut=halomass_slice >= halo_cutoff_mass
     halomass_slice_cut=halomass_slice[mass_cut]
     x_halos_cut= x_halos[mass_cut]
     y_halos_cut= y_halos[mass_cut]
     
-    lcp=mhalo_to_lcp(halo_redshift, halomass_slice_cut, kind='mean',use_scatter=use_scatter)
+    lcp=mhalo_to_lcp(halomass_slice_cut, halo_redshift, use_scatter=use_scatter)
     
     xdegree=utils.physical_boxsize_to_degree(halo_redshift,x_halos_cut )
     ydegree=utils.physical_boxsize_to_degree(halo_redshift,y_halos_cut)
@@ -354,14 +324,15 @@ def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_
 
 
        
-def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_cutoff_mass_log=11, use_scatter=True, unit='degree'):
+def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_cutoff_mass=1e11, use_scatter=use_scatter,halocat_file_type='npz', unit='degree'):
     '''
     Calculate luminosity for input parameters
     '''
+  
     #low_mass_log=0.0
     cellsize = boxsize/ngrid
     
-    halomass, halo_cm=make_halocat(halocat_file,filetype='dat',boxsize=boxsize)
+    halomass, halo_cm=make_halocat(halocat_file,filetype=halocat_file_type,boxsize=boxsize)
     
     nhalo=len(halomass)
     # Overplot halos 
@@ -373,8 +344,8 @@ def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_cutoff
     print('Maximum halo mass:', halomass.max())
    
     #halomass_filter=halomass
-    logmh=np.log10(halomass)
-    logmh=np.array([int(logmh[key]) for key in range(nhalo)])
+    #mh=halomass)
+    #logmh=np.array([int(logmh[key]) for key in range(nhalo)])
     
   
     z_max = nproj*cellsize # See slice() above
@@ -382,17 +353,20 @@ def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_cutoff
     mask = z_halos < z_max
     x_halos = x_halos[mask]
     y_halos = y_halos[mask]
-    halomass_slice = logmh[mask]
+    halomass_slice = halomass[mask]
     
 
-   
-    mass_cut=halomass_slice >= halo_cutoff_mass_log
+    
+    mass_cut=halomass_slice >= halo_cutoff_mass
     halomass_slice_cut=halomass_slice[mass_cut]
     x_halos_cut= x_halos[mass_cut]
     y_halos_cut= y_halos[mass_cut]
     
-    lcp=mhalo_to_lcp(halo_redshift, halomass_slice_cut, kind='mean',use_scatter=use_scatter)
-    
+    hcut_len=len(halomass_slice_cut)
+    lcp=np.zeros(hcut_len)
+    for i in range(hcut_len):
+        lcp[i]=mhalo_to_lcp(halomass_slice_cut[i],halo_redshift, use_scatter=use_scatter)
+   
     xdegree=utils.comoving_boxsize_to_degree(halo_redshift,x_halos_cut )
     ydegree=utils.comoving_boxsize_to_degree(halo_redshift,y_halos_cut)
     
@@ -402,7 +376,9 @@ def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_cutoff
         return xdegree, ydegree, lcp
 
 
-def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,halo_cutoff_mass_log=11, use_scatter=True,
+
+    
+def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,halo_cutoff_mass=1e11, use_scatter=True,
                density_plot=False, halo_overplot=False, plot_lines=False, tick_label='mpc'):
     """
     Plot a slice of gas density field and overplot the distribution of
@@ -413,7 +389,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
     nproj: cells to project (values could range from 1 to the ngrid)
     halocat_file: path to halo catalogue file (full path) 
     halo_redshift: redshift of halos
-    halo_cutoff_mass_log: cutt off mass of the halos
+    halo_cutoff_mass: cutt off mass of the halos
     density_plot: If true, plot the density distribution
     halo_plot: If True, plot halos
     
@@ -435,13 +411,10 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         # Plot gas density 
         with open(dens_gas_file, 'rb') as f:
             dens_gas = np.fromfile(f, dtype='f', count=-1)
-            #dens_gas=dens_gas+1.0
-            #dens_gas=dens_gas.reshape(ngrid**3,)
-            #rhobar = np.mean(dens_gas)
+
        
         
         i, j, val = slice(dens_gas, ngrid,nproj)
-       #val = val/(rhobar*nproj)
     
         cellsize = boxsize/ngrid
         i *= cellsize
@@ -531,10 +504,12 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         print('Maximum halo mass:', halomass.max())
         
                 #halomass_filter=halomass
-        logmh=np.log10(halomass)
-        logmh=np.array([int(logmh[key]) for key in range(nhalo)])
+        #logmh=np.log10(halomass)
+        #logmh=np.array([int(logmh[key]) for key in range(nhalo)])
         
-        highmass_filter=np.where(logmh>halo_cutoff_mass_log,logmh,low_mass_log)
+        #highmass_filter=np.where(logmh>halo_cutoff_mass,logmh,low_mass_log)
+        
+        highmass_filter=np.where(halomass>halo_cutoff_mass,halomass,low_mass_log)
        
         #z_min = 0.0
         z_max = nproj*cellsize # See slice() above
@@ -630,8 +605,8 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         print('Maximum halo mass:', halomass.max())
         
         #halomass_filter=halomass
-        logmh=np.log10(halomass)
-        logmh=np.array([int(logmh[key]) for key in range(nhalo)])
+        #logmh=halomass
+        #logmh=np.array([int(logmh[key]) for key in range(nhalo)])
         
       
         z_max = nproj*cellsize # See slice() above
@@ -639,18 +614,18 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         mask = z_halos < z_max
         x_halos = x_halos[mask]
         y_halos = y_halos[mask]
-        halomass_slice = logmh[mask]
+        halomass_slice = halomass[mask]
         
 
    
-        mass_cut=halomass_slice >= halo_cutoff_mass_log
+        mass_cut=halomass_slice >= halo_cutoff_mass
         halomass_slice_cut=halomass_slice[mass_cut]
         x_halos_cut= x_halos[mass_cut]
         y_halos_cut= y_halos[mass_cut]
         
         
         
-        lcp=mhalo_to_lcp(halo_redshift, halomass_slice_cut, kind='mean',use_scatter=use_scatter)
+        lcp=mhalo_to_lcp(halomass_slice_cut, halo_redshift, use_scatter=use_scatter)
         r=halomass_slice_cut/halomass_slice_cut.max()
       
         
@@ -710,8 +685,8 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
   
 
 
-def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_redshift, halo_cutoff_mass_log=11, 
-              use_scatter=True, unit='degree', plot_unit='minute', tick_num=5, add_noise=False, random_noise_parcentage=None):
+def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_redshift, halo_cutoff_mass=1e11, 
+              use_scatter=True, halocat_file_type='npz', unit='degree', plot_unit='minute', tick_num=5, add_noise=False, random_noise_parcentage=None):
     
     
     global final_cov
@@ -719,7 +694,7 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     dtm=p.default_constants['degree_to_minute']
     
     xl, yl, lum=calc_luminosity(boxsize, ngrid, nproj,halocat_file, halo_redshift, 
-                                halo_cutoff_mass_log=halo_cutoff_mass_log, use_scatter=use_scatter, unit=unit)
+                                halo_cutoff_mass=halo_cutoff_mass, halocat_file_type= halocat_file_type, use_scatter=use_scatter, unit=unit)
 
     if(beam_unit=='arcmin' or beam_unit=='arcminute' or beam_unit=='minute'):
         print("Theta FWHM (arc-min):", theta_fwhm) 
@@ -732,8 +707,8 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     x_arc=xl*dtm
     y_arc=yl*dtm
     
-    sx=0.03*(lum**3) #keep it 0.03*(lum**3) 
-    sy=0.03*(lum**3)  #keep it 0.03*(lum**3) 
+    sx=0.0001*(np.log10(lum)**3) #keep it 0.03*(lum**3) 
+    sy=0.0001*(np.log10(lum)**3)  #keep it 0.03*(lum**3) 
    
     beam_std=theta/(np.sqrt(8*np.log(2.0)))
     gauss_kernel = Gaussian2DKernel(beam_std)
@@ -773,7 +748,7 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
    
     fig, ax = plt.subplots(figsize=(7,7),dpi=100)
  
-    res=ax.imshow(final_conv, cmap='gist_heat', interpolation='gaussian',origin='lower', rasterized=True, alpha=0.9)
+    res=ax.imshow(final_conv, cmap='gist_heat', interpolation='gaussian',origin='lower', rasterized=True, alpha=0.9, norm=colors.LogNorm())
     
         
     if(plot_unit=='degree'):
@@ -810,3 +785,4 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     cb.solids.set_edgecolor("face")
     cb.ax.tick_params('both', which='major', length=3, width=1, direction='out')
     plt.savefig("luminsoty_beam.png")
+    
