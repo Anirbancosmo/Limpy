@@ -28,29 +28,6 @@ mhn=m.reshape(mlen,zlen)[:,0]
 sfrn=sfr.reshape(mlen,zlen)
 sfr_interpolation=RectBivariateSpline(mhn, zn, sfrn)
 
- 
-def read_sfr(SFR_filename):
-    """
-    This takes a SFR file in Universemachine Output format
-    
-    Parameters:
-        filename: SFR filename/filepath
-    
-    Returns:
-        redshift, SFR, error_SFR_up, error_SFR_down
-        
-    Note: Columns are: Scale factor, SFR, Err_Up, Err_Down (all linear units)
-    """
-    
-    # read SFR parameters from SFR file generated from Universe machine
-    scale_fac, SFR, error_SFR_up, error_SFR_down=np.loadtxt(SFR_filename,unpack=True)
-    
-    # scale factor to redshift
-    z=1.0/scale_fac-1.0
- 
-    return z, SFR, error_SFR_up, error_SFR_down
-
-
 
 def make_hlist_ascii_to_npz(hlist_path_ascii, filename=None):
     """ 
@@ -170,6 +147,55 @@ def sfr_to_lcp_nonscatter_chung(z, sfr):
     log_lcp=alpha_z*np.log10(sfr)+beta_z
     return 10**log_lcp
 
+
+def sfr_to_lot_scatter(z, sfr,a_off=p.default_lot_scatter_params['a_off'],a_std=p.default_lot_scatter_params['a_std'],
+                       b_off=p.default_lot_scatter_params['b_off'],b_std=p.default_lot_scatter_params['b_std']):
+    
+    """
+    Calculates lumiosity of the OIII lines from SFR assuming a 3\sigma Gussian scatter. The parameter values for the scattered relation
+    is mentioned in defalut_params module. 
+    
+    Input: z and sfr
+    
+    return: luminosity of OIII lines in log scale 
+    """
+    if np.isscalar(sfr)==True:
+        sfr=np.atleast_1d(sfr) ####Convert inputs to arrays with at least one dimension. Scalar inputs are converted to 1-dimensional arrays, whilst higher-dimensional inputs are preserved.
+    
+    sfr_len=len(sfr)
+    log_L_ot=np.zeros(sfr_len)
+    for i in range(sfr_len):
+        a= np.random.normal(a_off,a_std)
+        b= np.random.normal(b_off,b_std)
+        log_L_ot[i]=(a+b*np.log10(sfr[i]))
+    return 10**log_L_ot
+
+   
+
+def sfr_to_lot_nonscatter(z, sfr,a_off=p.default_lot_scatter_params['a_off'],b_off=p.default_lot_scatter_params['b_off']):
+    """
+    This function returns luminosity of OIII lines in the unit of L_sun. This does not include the scatter, rather
+    this is the mean relation. 
+    
+    Values of fitting parameters are taken from .......
+    
+    We write two equations as
+    \alpha_z=a-b*z
+    \beta_z=c-d*z
+    values are mentioned 
+    """
+    a,b=a_off, b_off
+  
+    if np.isscalar(sfr)==True:
+        sfr=np.atleast_1d(sfr)
+    
+    sfr_len=len(sfr)
+    log_L_ot=np.zeros(sfr_len)
+    
+    for i in range(sfr_len):
+        log_L_ot[i]=(b*np.log10(sfr[i])+a)
+    return 10**log_L_ot
+
     
 def mhalo_to_sfr(m,z):
     """
@@ -182,9 +208,9 @@ def mhalo_to_sfr(m,z):
     return res.flatten()
 
 
-def mhalo_to_lcp(Mh, z, use_scatter=use_scatter):
+def mhalo_to_lline(Mh, z, line_name='CII', use_scatter=use_scatter):
     """
-    this function returns luminosity of CII lines in the unit of L_sun.
+    This function returns luminosity of lines (following the input line_name) in the unit of L_sun.
     Kind optitions takes the SFR: mean , up (1-sigma upper bound) and
     down (1-sigma lower bound)
     """
@@ -192,13 +218,19 @@ def mhalo_to_lcp(Mh, z, use_scatter=use_scatter):
     
     SFR_mean=mhalo_to_sfr(Mh,z)
     
-    if(use_scatter==True):
-        lcp=sfr_to_lcp_scatter(z,SFR_mean)
-    if(use_scatter==False):
-        lcp=sfr_to_lcp_nonscatter(z,SFR_mean)
-
-    return lcp
-
+    if(line_name=='CII'):
+        if(use_scatter==True):
+            l_line=sfr_to_lcp_scatter(z,SFR_mean)
+        if(use_scatter==False):
+            l_line=sfr_to_lcp_nonscatter(z,SFR_mean)
+    
+    if(line_name=='OIII'):
+        if(use_scatter==True):
+            l_line=sfr_to_lcp_scatter(z,SFR_mean)
+        if(use_scatter==False):
+            l_line=sfr_to_lcp_nonscatter(z,SFR_mean)
+    
+    return l_line
 
 
 def slice(datacube, ngrid, nproj, option='C'):
@@ -227,35 +259,48 @@ def slice(datacube, ngrid, nproj, option='C'):
     return iarr, jarr, valarr
 
 
-def plot_sfr_mhalo(Mhalo_array_logscale,colorlist=None,figname=None):
+def plot_sfr_mhalo(Mhalo_in,colorlist=None,figname=None):
     
     colorlist=['Crimson','darkgreen','C1','blue','C5','C9']
     lw_def=3.0
     font_legend_def=18
-    alpha_def=0.3
+    #alpha_def=0.3
     
     x_min_def=0.0
     x_max_def=8.0
     y_min_def=0.0
     y_max_def=1000
+
     
-    sfr_filepath='../data/sfh_z0_z8/sfr/'
-    
-    
-    if np.isscalar(Mhalo_array_logscale)==True:
-        Mhalo_array_logscale=np.atleast_1d(Mhalo_array_logscale)
+    for i in range (len(Mhalo_in)):
+        Mhalo=Mhalo_in[i]
         
-    for i in range(len(Mhalo_array_logscale)):
-        fname=sfr_filepath+'sfr_corrected_%2.1f.dat' %(Mhalo_array_logscale[i])
-        z,sfr,err_up, err_down=read_sfr(fname)
+        if(Mhalo>=1e9 and Mhalo<1e11):
+            zmax=8.0
         
+        if(Mhalo>=1e11 and Mhalo<=1e12):
+            zmax=5.7
+        
+        if(Mhalo>1e12 and Mhalo<=1e13):
+            zmax=3.0
+            
+        if(Mhalo>1e13 and Mhalo<=1e14):
+            zmax=1.8
+        
+        if(Mhalo>1e14 and Mhalo<=1e15):
+            zmax=0.5
+        if(Mhalo>=1e15):
+            zmax=0.4
+            
+        z=np.linspace(0.01, zmax)
+        sfr=mhalo_to_sfr(Mhalo,z)
         #plot
         if colorlist:
-            plt.plot(z,sfr,lw=lw_def,color=colorlist[i],label=r"$M_{halo}=10^{%d}\,M_\odot$" %Mhalo_array_logscale[i])
-            plt.fill_between(z, sfr-err_down, sfr+err_up,color=colorlist[i],label='',alpha=alpha_def)
+            plt.plot(z,sfr,lw=lw_def,color=colorlist[i],label=r"$M_{halo}={%1.1e}\,M_\odot$" %Mhalo)
+            #plt.fill_between(z, sfr-err_down, sfr+err_up,color=colorlist[i],label='',alpha=alpha_def)
         else:
-            plt.plot(z,sfr,lw=lw_def,color=colorlist[i],label=r"$M_{halo}=10^{%d}\,M_\odot$" %Mhalo_array_logscale[i])
-            plt.fill_between(z, sfr-err_down, sfr+err_up,color=colorlist[i],label='',alpha=alpha_def)
+            plt.plot(z,sfr,lw=lw_def,color=colorlist[i],label=r"$M_{halo}={%e1.1}\,M_\odot$" %Mhalo)
+            #plt.fill_between(z, sfr-err_down, sfr+err_up,color=colorlist[i],label='',alpha=alpha_def)
       
 
     plt.yscale("log")
@@ -273,7 +318,7 @@ def plot_sfr_mhalo(Mhalo_array_logscale,colorlist=None,figname=None):
         plt.savefig("z_sfr_mhalo.png")
         
        
-def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_cutoff_mass=1e11, use_scatter=True,save_unit='degree',saved_file_name=None):
+def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,line_name='CII',halo_cutoff_mass=1e11, use_scatter=True,save_unit='degree',saved_file_name=None):
     #low_mass_log=0.0
     cellsize = boxsize/ngrid
     
@@ -294,7 +339,7 @@ def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_
     
   
     z_max = nproj*cellsize # See slice() above
-
+    
     mask = z_halos < z_max
     x_halos = x_halos[mask]
     y_halos = y_halos[mask]
@@ -307,7 +352,7 @@ def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_
     x_halos_cut= x_halos[mass_cut]
     y_halos_cut= y_halos[mass_cut]
     
-    lcp=mhalo_to_lcp(halomass_slice_cut, halo_redshift, use_scatter=use_scatter)
+    lcp=mhalo_to_lline(halomass_slice_cut, halo_redshift, line_name=line_name, use_scatter=use_scatter)
     
     xdegree=utils.physical_boxsize_to_degree(halo_redshift,x_halos_cut )
     ydegree=utils.physical_boxsize_to_degree(halo_redshift,y_halos_cut)
@@ -324,7 +369,7 @@ def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_
 
 
        
-def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_cutoff_mass=1e11, use_scatter=use_scatter,halocat_file_type='npz', unit='degree'):
+def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift,line_name='CII',halo_cutoff_mass=1e11, use_scatter=use_scatter,halocat_file_type='npz', unit='degree'):
     '''
     Calculate luminosity for input parameters
     '''
@@ -365,7 +410,7 @@ def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_cutoff
     hcut_len=len(halomass_slice_cut)
     lcp=np.zeros(hcut_len)
     for i in range(hcut_len):
-        lcp[i]=mhalo_to_lcp(halomass_slice_cut[i],halo_redshift, use_scatter=use_scatter)
+        lcp[i]=mhalo_to_lline(halomass_slice_cut[i],halo_redshift,line_name=line_name, use_scatter=use_scatter)
    
     xdegree=utils.comoving_boxsize_to_degree(halo_redshift,x_halos_cut )
     ydegree=utils.comoving_boxsize_to_degree(halo_redshift,y_halos_cut)
@@ -378,7 +423,7 @@ def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift,halo_cutoff
 
 
     
-def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,halo_cutoff_mass=1e11, use_scatter=True,
+def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,line_name='CII',halo_cutoff_mass=1e11, use_scatter=True,
                density_plot=False, halo_overplot=False, plot_lines=False, tick_label='mpc'):
     """
     Plot a slice of gas density field and overplot the distribution of
@@ -408,22 +453,32 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
    
    
     if density_plot:
-        # Plot gas density 
+        
+                # Load density file
         with open(dens_gas_file, 'rb') as f:
             dens_gas = np.fromfile(f, dtype='f', count=-1)
-
-       
+            #dens_gas=dens_gas+1.0
+            #dens_gas=dens_gas.reshape(ngrid,ngrid,ngrid)
+            #rhobar = np.mean(dens_gas)
         
+        # slice the data cube
         i, j, val = slice(dens_gas, ngrid,nproj)
+        
+        dens_mean=np.mean(dens_gas+1)
+        
+        val= (val/(dens_mean*nproj))
+    
     
         cellsize = boxsize/ngrid
         i *= cellsize
         j *= cellsize 
-    
-    
+               
+
+  
         s = plt.scatter(i, j, c=val, s=10, marker='s',
                        edgecolor='none', rasterized=True,
-                       cmap=plt.cm.gist_yarg)
+                       cmap=plt.cm.viridis, vmax=1, vmin=-1)
+        
         
                 
         if(tick_label=='mpc'):
@@ -455,16 +510,14 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
             plt.xlabel(r'$X\,(\mathrm{degree})$')
             plt.ylabel('$Y\,(\mathrm{degree})$')
    
-
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", "5%", pad="3%")
         cb = plt.colorbar(s, cax=cax)
-        cb.set_label(r'$\Delta_{\rho}$',
+        cb.set_label(r'$\Delta_\rho$',
                      labelpad=1)
        
         cb.solids.set_edgecolor("face")
         ax.set_aspect('equal', 'box')
-        
         
     
     if halo_overplot:
@@ -478,6 +531,10 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         
         # slice the data cube
         i, j, val = slice(dens_gas, ngrid,nproj)
+        
+        dens_mean=np.mean(dens_gas+1)
+        
+        val= (val/(dens_mean*nproj))
     
     
         cellsize = boxsize/ngrid
@@ -488,7 +545,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
   
         s = plt.scatter(i, j, c=val, s=10, marker='s',
                        edgecolor='none', rasterized=True,
-                       cmap=plt.cm.viridis, vmax=15, vmin=-15 )
+                       cmap=plt.cm.viridis, vmax=1, vmin=-1)
         
    
     
@@ -585,12 +642,15 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         cellsize = boxsize/ngrid
         i *= cellsize
         j *= cellsize 
-  
         
-       
+        dens_mean=np.mean(dens_gas+1)
+        
+        val= (val/(dens_mean*nproj))
+        
+        
         s = plt.scatter(i, j, c=val, s=10, marker='s',
-                       edgecolor='none',
-                       cmap=plt.cm.gist_yarg, alpha=0.9)
+                       edgecolor='none', rasterized=True,
+                       cmap=plt.cm.viridis, vmax=1, vmin=-1, alpha=0.8)
         
        
         
@@ -625,7 +685,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         
         
         
-        lcp=mhalo_to_lcp(halomass_slice_cut, halo_redshift, use_scatter=use_scatter)
+        lcp=mhalo_to_lline(halomass_slice_cut, halo_redshift, line_name=line_name, use_scatter=use_scatter)
         r=halomass_slice_cut/halomass_slice_cut.max()
       
         
@@ -685,7 +745,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
   
 
 
-def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_redshift, halo_cutoff_mass=1e11, 
+def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_redshift, line_name='CII', halo_cutoff_mass=1e11, 
               use_scatter=True, halocat_file_type='npz', unit='degree', plot_unit='minute', tick_num=5, add_noise=False, random_noise_parcentage=None):
     
     
@@ -693,7 +753,7 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     #mtd=p.default_constants['minute_to_degree']
     dtm=p.default_constants['degree_to_minute']
     
-    xl, yl, lum=calc_luminosity(boxsize, ngrid, nproj,halocat_file, halo_redshift, 
+    xl, yl, lum=calc_luminosity(boxsize, ngrid, nproj,halocat_file, halo_redshift, line_name=line_name,
                                 halo_cutoff_mass=halo_cutoff_mass, halocat_file_type= halocat_file_type, use_scatter=use_scatter, unit=unit)
 
     if(beam_unit=='arcmin' or beam_unit=='arcminute' or beam_unit=='minute'):
@@ -707,8 +767,8 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     x_arc=xl*dtm
     y_arc=yl*dtm
     
-    sx=0.0001*(np.log10(lum)**3) #keep it 0.03*(lum**3) 
-    sy=0.0001*(np.log10(lum)**3)  #keep it 0.03*(lum**3) 
+    sx=0.01*(np.log10(lum)**3) #keep it 0.03*(lum**3) 
+    sy=0.01*(np.log10(lum)**3)  #keep it 0.03*(lum**3) 
    
     beam_std=theta/(np.sqrt(8*np.log(2.0)))
     gauss_kernel = Gaussian2DKernel(beam_std)

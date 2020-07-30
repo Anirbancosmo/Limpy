@@ -694,7 +694,7 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     dtm=p.default_constants['degree_to_minute']
     
     xl, yl, lum=calc_luminosity(boxsize, ngrid, nproj,halocat_file, halo_redshift, 
-                                halo_cutoff_mass=halo_cutoff_mass, use_scatter=use_scatter, unit=unit)
+                                halo_cutoff_mass=halo_cutoff_mass, halocat_file_type= halocat_file_type, use_scatter=use_scatter, unit=unit)
 
     if(beam_unit=='arcmin' or beam_unit=='arcminute' or beam_unit=='minute'):
         print("Theta FWHM (arc-min):", theta_fwhm) 
