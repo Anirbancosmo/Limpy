@@ -85,6 +85,7 @@ limpy.egg-info/top_level.txt
 limpy/__pycache__/__init__.cpython-37.pyc
 limpy/__pycache__/cosmos.cpython-37.pyc
 limpy/__pycache__/lcp.cpython-37.pyc
+limpy/__pycache__/lline.cpython-37.pyc
 limpy/__pycache__/params.cpython-37.pyc
 limpy/__pycache__/plotsettings.cpython-37.pyc
 limpy/__pycache__/utils.cpython-37.pyc
@@ -94,12 +95,14 @@ notebook/CII_z5.80_L80N512_f200_mmin1e11.pdf
 notebook/CII_z5.80_L80N512_f57_mmin1e11.pdf
 notebook/Untitled.ipynb
 notebook/ccatp_test.ipynb
+notebook/dens_halos_L80N512_z4.4_log_mmin8.png
 notebook/intensity.jpg
 notebook/mhalo_lcp_comparison.png
 notebook/pk.png
 notebook/slice_plot.pdf
 notebook/test.ipynb
 notebook/theory.ipynb
+notebook/z_sfr_mhalo.png
 notebook/.ipynb_checkpoints/Untitled-checkpoint.ipynb
 notebook/.ipynb_checkpoints/ccatp_test-checkpoint.ipynb
 notebook/.ipynb_checkpoints/test-checkpoint.ipynb

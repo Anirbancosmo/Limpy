@@ -219,16 +219,18 @@ def mhalo_to_lline(Mh, z, line_name='CII', use_scatter=use_scatter):
     SFR_mean=mhalo_to_sfr(Mh,z)
     
     if(line_name=='CII'):
+        print("doing CII")
         if(use_scatter==True):
             l_line=sfr_to_lcp_scatter(z,SFR_mean)
         if(use_scatter==False):
             l_line=sfr_to_lcp_nonscatter(z,SFR_mean)
     
     if(line_name=='OIII'):
+        print("doing OIII")
         if(use_scatter==True):
-            l_line=sfr_to_lcp_scatter(z,SFR_mean)
+            l_line=sfr_to_lot_scatter(z,SFR_mean)
         if(use_scatter==False):
-            l_line=sfr_to_lcp_nonscatter(z,SFR_mean)
+            l_line=sfr_to_lot_nonscatter(z,SFR_mean)
     
     return l_line
 
@@ -369,7 +371,7 @@ def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,line_
 
 
        
-def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift,line_name='CII',halo_cutoff_mass=1e11, use_scatter=use_scatter,halocat_file_type='npz', unit='degree'):
+def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift, line_name='CII',halo_cutoff_mass=1e11, use_scatter=use_scatter,halocat_file_type='npz', unit='degree'):
     '''
     Calculate luminosity for input parameters
     '''
@@ -567,6 +569,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         #highmass_filter=np.where(logmh>halo_cutoff_mass,logmh,low_mass_log)
         
         highmass_filter=np.where(halomass>halo_cutoff_mass,halomass,low_mass_log)
+        
        
         #z_min = 0.0
         z_max = nproj*cellsize # See slice() above
@@ -621,6 +624,8 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         ax.set_aspect('equal', 'box')
         
     if plot_lines:
+        
+        
         """
         Plot a slice of gas density field and overplot the distribution of
         haloes in that slice.
@@ -656,6 +661,8 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         
         halomass, halo_cm=make_halocat(halocat_file,filetype='dat',boxsize=boxsize)
         nhalo=len(halomass)
+        
+
         # Overplot halos 
         x_halos = halo_cm[range(0,nhalo*3,3)]
         y_halos = halo_cm[range(1,nhalo*3,3)]
@@ -663,10 +670,6 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
        
         print('Minimum halo mass:', halomass.min())
         print('Maximum halo mass:', halomass.max())
-        
-        #halomass_filter=halomass
-        #logmh=halomass
-        #logmh=np.array([int(logmh[key]) for key in range(nhalo)])
         
       
         z_max = nproj*cellsize # See slice() above
@@ -684,14 +687,33 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         y_halos_cut= y_halos[mass_cut]
         
         
-        
+        print(halomass_slice_cut)
         lcp=mhalo_to_lline(halomass_slice_cut, halo_redshift, line_name=line_name, use_scatter=use_scatter)
         r=halomass_slice_cut/halomass_slice_cut.max()
       
         
         s1=plt.scatter(x_halos_cut, y_halos_cut, marker='o', c=lcp, s=50*r,cmap='YlOrRd', vmin=3, vmax=8, alpha=0.9)
         
+        
+        z_max = nproj*cellsize # See slice() above
+
+        mask = z_halos < z_max
+        x_halos = x_halos[mask]
+        y_halos = y_halos[mask]
+        halomass_slice = halomass[mask]
+        
+    
+        
+        mass_cut=halomass_slice >= halo_cutoff_mass
+        halomass_slice_cut=halomass_slice[mass_cut]
+        x_halos_cut= x_halos[mass_cut]
+        y_halos_cut= y_halos[mass_cut]
+        
+        print("doing")
+        print(halomass_slice_cut)
+        lcp=mhalo_to_lline(halomass_slice_cut,halo_redshift,line_name=line_name, use_scatter=use_scatter)
             
+                
     
         if(tick_label=='mpc'):
             ax.set_xlim(0,boxsize)
@@ -737,7 +759,6 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         cb1.set_label(r'$\Delta$',
                      labelpad=5)
         cb1.solids.set_edgecolor("face")
-            
     
     
     plt.tight_layout()
@@ -795,7 +816,7 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
         final_conv=0.001*np.ones([flen,flen])
     if(add_noise==True):
         #final_conv=random_noise_parcentage *lum.max()* (np.random.rand(flen, flen)-0.5)
-        final_conv=0.001*np.ones([flen,flen])
+        final_conv=0.01*np.ones([flen,flen])
     for i in range(lum_len):
         b= beam(lum[i],x_arc[i],y_arc[i],sx[i],sy[i])
         gauss_data=b(x_p,y_p)
@@ -806,9 +827,9 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
         final_conv=convolve(final_conv,gauss_kernel)
         
    
-    fig, ax = plt.subplots(figsize=(7,7),dpi=100)
+    fig, ax = plt.subplots(figsize=(8,8),dpi=70)
  
-    res=ax.imshow(final_conv, cmap='gist_heat', interpolation='gaussian',origin='lower', rasterized=True, alpha=0.9, norm=colors.LogNorm())
+    res=ax.imshow(final_conv, cmap='gist_heat', interpolation='gaussian',origin='lower', rasterized=True, alpha=0.9, vmin=1e6, bmax=1e10, norm=colors.LogNorm())
     
         
     if(plot_unit=='degree'):
@@ -841,8 +862,10 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", "3%", pad="3%")
     cb = plt.colorbar(res, cax=cax)
-    cb.set_label(r'$L_{CII}$', labelpad=20)
+    cb.set_label(r'$L$', labelpad=20)
     cb.solids.set_edgecolor("face")
     cb.ax.tick_params('both', which='major', length=3, width=1, direction='out')
+    
+    plt.tight_layout()
     plt.savefig("luminsoty_beam.png")
     
