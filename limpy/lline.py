@@ -219,14 +219,14 @@ def mhalo_to_lline(Mh, z, line_name='CII', use_scatter=use_scatter):
     SFR_mean=mhalo_to_sfr(Mh,z)
     
     if(line_name=='CII'):
-        print("doing CII")
+        #print("doing CII")
         if(use_scatter==True):
             l_line=sfr_to_lcp_scatter(z,SFR_mean)
         if(use_scatter==False):
             l_line=sfr_to_lcp_nonscatter(z,SFR_mean)
     
     if(line_name=='OIII'):
-        print("doing OIII")
+        #print("doing OIII")
         if(use_scatter==True):
             l_line=sfr_to_lot_scatter(z,SFR_mean)
         if(use_scatter==False):
@@ -663,10 +663,10 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         xl, yl, lum=calc_luminosity(boxsize, ngrid, nproj,halocat_file, halo_redshift, line_name=line_name,
                                 halo_cutoff_mass=halo_cutoff_mass, halocat_file_type=halocat_file_type, use_scatter=use_scatter, unit='mpc')
     
-        print(xl, yl)
+
         
         r=np.log10(lum)/np.log10(lum.max())
-        print(lum)
+     
         
         s1=plt.scatter(xl, yl, marker='o', c=lum, s=50*r,cmap='afmhot',  vmin=1e4, vmax=1e10, norm=colors.LogNorm(), alpha=0.9)
         
