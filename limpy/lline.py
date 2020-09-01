@@ -12,8 +12,13 @@ from matplotlib import cm
 from astropy.convolution import convolve, Gaussian2DKernel
 from astropy.modeling.models import Gaussian2D
 from scipy.interpolate import RectBivariateSpline
-
 import matplotlib.colors as colors
+
+import matplotlib as pl
+pl.rcParams['xtick.labelsize'] = '10'
+pl.rcParams['ytick.labelsize'] = '10'
+pl.rcParams['axes.labelsize'] = '15'
+pl.rcParams['axes.labelsize'] = '15'
 
 use_scatter=p.code_params['use_scatter']
 lcp_low=p.default_dummy_values['lcp_low']
@@ -427,7 +432,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
                density_plot=False, halo_overplot=False, plot_lines=False, unit='mpc'):
     
     
-    global lum
+
     """
     Plot a slice of gas density field and overplot the distribution of
     haloes in that slice.
@@ -479,7 +484,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
   
         s = plt.scatter(i, j, c=val, s=10, marker='s',
                        edgecolor='none', rasterized=True,
-                       cmap=plt.cm.viridis, vmax=1, vmin=-1)
+                       cmap=plt.cm.viridis_r, vmax=1, vmin=-1)
         
         
                 
@@ -509,14 +514,15 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
             ax.set_xticks(xtick_mpc)
             ax.set_xticklabels(custom_xticks)
             
-            plt.xlabel(r'$X\,(\mathrm{degree})$')
-            plt.ylabel('$Y\,(\mathrm{degree})$')
+            plt.xlabel(r'$\Theta\,(\mathrm{degree})$')
+            plt.ylabel(r'$\Theta\,(\mathrm{degree})$')
    
         divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", "5%", pad="3%")
-        cb = plt.colorbar(s, cax=cax)
+       
+        cax = divider.append_axes("bottom", "3%", pad="13%")
+        cb = plt.colorbar(s,cax=cax,orientation='horizontal')
         cb.set_label(r'$\Delta_\rho$',
-                     labelpad=1)
+                     labelpad=5)
        
         cb.solids.set_edgecolor("face")
         ax.set_aspect('equal', 'box')
@@ -547,7 +553,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
   
         s = plt.scatter(i, j, c=val, s=10, marker='s',
                        edgecolor='none', rasterized=True,
-                       cmap=plt.cm.viridis, vmax=1, vmin=-1)
+                       cmap=plt.cm.viridis_r, vmax=1, vmin=-1)
         
    
     
@@ -581,7 +587,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         r = r/r.max()
 
         
-        s1=plt.scatter(x_halos, y_halos, marker='o', s=30*r, \
+        s1=plt.scatter(x_halos, y_halos, marker='o', s=100*r, \
                         color='red', alpha=0.9)
         
         
@@ -611,14 +617,15 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
             ax.set_xticks(xtick_mpc)
             ax.set_xticklabels(custom_xticks)
             
-            plt.xlabel(r'$X\,(\mathrm{degree})$')
-            plt.ylabel('$Y\,(\mathrm{degree})$')
+            plt.xlabel(r'$\Theta\,(\mathrm{degree})$')
+            plt.ylabel(r'$\Theta\,(\mathrm{degree})$')
    
         divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", "5%", pad="3%")
-        cb = plt.colorbar(s, cax=cax)
+       
+        cax = divider.append_axes("bottom", "3%", pad="13%")
+        cb = plt.colorbar(s,cax=cax,orientation='horizontal')
         cb.set_label(r'$\Delta_\rho$',
-                     labelpad=1)
+                     labelpad=5)
        
         cb.solids.set_edgecolor("face")
         ax.set_aspect('equal', 'box')
@@ -665,10 +672,10 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
     
 
         
-        r=np.log10(lum)/np.log10(lum.max())
+        r=(np.log10(lum)/np.log10(lum.max()))**6
      
         
-        s1=plt.scatter(xl, yl, marker='o', c=lum, s=50*r,cmap='afmhot',  vmin=1e4, vmax=1e10, norm=colors.LogNorm(), alpha=0.9)
+        s1=plt.scatter(xl, yl, marker='o', c=lum, s=70*r,cmap='afmhot',  vmin=1e4, vmax=1e10, norm=colors.LogNorm(), alpha=0.9)
         
     
         if(unit=='mpc'):
@@ -697,13 +704,13 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
             ax.set_xticks(xtick_mpc)
             ax.set_xticklabels(custom_xticks)
             
-            plt.xlabel(r'$X\,(\mathrm{degree})$')
-            plt.ylabel('$Y\,(\mathrm{degree})$')
+            plt.xlabel(r'$\Theta\,(\mathrm{degree})$')
+            plt.ylabel(r'$\Theta\,(\mathrm{degree})$')
     
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", "5%", pad="3%")
         cb = plt.colorbar(s1, cax=cax)
-        cb.set_label(r'$\log(L_{\mathrm{%s}})$' %(line_name),
+        cb.set_label(r'$L_{\mathrm{%s}}\,[L_\odot]$' %(line_name),
                      labelpad=1)
        
         cb.solids.set_edgecolor("face")
@@ -712,7 +719,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         
         cax1 = divider.append_axes("bottom", "3%", pad="13%")
         cb1 = plt.colorbar(s,cax=cax1,orientation='horizontal')
-        cb1.set_label(r'$\Delta$',
+        cb1.set_label(r'$\Delta_\rho$',
                      labelpad=5)
         cb1.solids.set_edgecolor("face")
         
@@ -744,12 +751,14 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     x_arc=xl*dtm
     y_arc=yl*dtm
     
-    sx=0.01*(np.log10(lum)**3) #keep it 0.03*(lum**3) 
-    sy=0.01*(np.log10(lum)**3)  #keep it 0.03*(lum**3) 
+    #sx=2e-2*np.log10(lum)**2 #keep it 0.03*(lum**3) 
+    #sy=2e-2*np.log10(lum)**2 #keep it 0.03*(lum**3) 
+    sx=np.zeros(len(lum))
+    sy=np.zeros(len(lum))
    
     beam_std=theta/(np.sqrt(8*np.log(2.0)))
     gauss_kernel = Gaussian2DKernel(beam_std)
-    
+
     
     x_p=np.linspace(0,x_arc.max(),num=ngrid)
     y_p=np.linspace(0,y_arc.max(),num=ngrid)
@@ -785,7 +794,7 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
    
     fig, ax = plt.subplots(figsize=(8,8),dpi=70)
  
-    res=ax.imshow(final_conv, cmap='gist_heat', interpolation='gaussian',origin='lower', rasterized=True, alpha=0.9, vmin=1e4, vmax=1e10, norm=colors.LogNorm())
+    res=ax.imshow(final_conv, cmap='gist_heat', interpolation='gaussian',origin='lower', rasterized=True, alpha=0.9, vmin=1e3, vmax=1e9, norm=colors.LogNorm())
     
         
     if(plot_unit=='degree'):
@@ -794,8 +803,8 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
         ticks=np.linspace(0, x_tick,num=tick_num)
         labels = [str("{:.1e}".format(xx)) for xx in ticks]
         locs = [xx/cell_size for xx in ticks]
-        plt.xlabel('degree')
-        plt.ylabel('degree')
+        plt.xlabel(r'$\Theta\,(\mathrm{degree})$')
+        plt.ylabel(r'$\Theta\,(\mathrm{degree})$')
 
         
     if(plot_unit=='minute'):
@@ -804,8 +813,8 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
         ticks=np.linspace(0, x_tick,num=tick_num)
         labels = [str("{:.1f}".format(xx)) for xx in ticks]
         locs = [xx/cell_size for xx in ticks]
-        plt.xlabel('arc-min')
-        plt.ylabel('arc-min')
+        plt.xlabel(r'$\Theta\,(\mathrm{arc-min})$')
+        plt.ylabel(r'$\Theta\,(\mathrm{arc-min})$')
 
     
 
