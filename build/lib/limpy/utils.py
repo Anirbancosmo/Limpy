@@ -7,8 +7,10 @@ Created on Tue Jun  9 11:57:35 2020
 """
 from __future__ import division
 import numpy as np
-import cosmolopy
+import cosmos 
+import params as p
 
+cosmo=cosmos.cosmo()
 
 def volume_box(boxsize):
     """
@@ -27,3 +29,20 @@ def volume_cell(boxsize,ngrid):
     clen= boxsize/ngrid   #length of a cell
     return clen**3   # in Mp
 
+def comoving_boxsize_to_degree(z, boxsize):
+    #boxsize in Mpc
+    mpc_to_m=p.default_constants['mpc_to_m']
+    boxsize=boxsize*mpc_to_m
+    dc=cosmo.D_co(z)
+    theta_rad=boxsize/dc
+    theta_degree=theta_rad*180.0/np.pi
+    return theta_degree
+
+def physical_boxsize_to_degree(z, boxsize):
+    #boxsize in Mpc
+    mpc_to_m=p.default_constants['mpc_to_m']
+    boxsize=boxsize*mpc_to_m
+    da=cosmo.D_angular(z)
+    theta_rad=boxsize/da
+    theta_degree=theta_rad*180.0/np.pi
+    return theta_degree
