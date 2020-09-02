@@ -27,6 +27,7 @@ Lsun=p.astro_params['Lsun']
 jy_unit=p.default_constants['Jy']
 delta_c=p.astro_params['delta_c']
 Halo_model=p.astro_params['halo_model']
+Ghz_to_hz=p.default_constants['ghz_to_hz']
 
 omega_lambda=p.cosmo_params['omega_lambda']
 omega_matter=p.cosmo_params['omega_mh2']/small_h**2
@@ -256,11 +257,10 @@ def I_nu(z,nu_rest_line,line_name="CII",z_line=0.0):
     if(line_name=="CO10"):
         L_line=mhalo_to_lco_fit(mass_bin, z)
 
-    
     L_line*=Lsun
     #print(mass_bin)
 
-    factor= (c_in_m)/(4*1e9*np.pi*nu_rest_line*cosmo.H_z(z_line))
+    factor= (c_in_m)/(4*Ghz_to_hz*np.pi*nu_rest_line*cosmo.H_z(z_line))
 
     integrand=(factor * dndm * L_line * (mpc_to_m)**-3) * small_h**4
 
@@ -279,7 +279,7 @@ def I_nu_sim(z,nu_rest_line,z_line=0.0):
     L_line*=Lsun
     #print(mass_bin)
 
-    factor= (c_in_m)/(4*1e9*np.pi*nu_rest_line*cosmo.H_z(z_line))
+    factor= (c_in_m)/(4*Ghz_to_hz*np.pi*nu_rest_line*cosmo.H_z(z_line))
 
     integrand=(factor * dndm * L_line * (mpc_to_m)**-3) * small_h**4
 
