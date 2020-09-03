@@ -3,7 +3,7 @@ __pycache__
 build/
 *.egg-info
 dist
-.DS_Store
-read.txt
+DS_Store
+*.txt
 *.pdf
 *.png
