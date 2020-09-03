@@ -29,8 +29,8 @@ code_params={
 
 
 astro_params={
-        'Mmin': 1e11,
-        'Mmax': 1e15,
+        'Mmin': 1e9,
+        'Mmax': 1e12,
         'Lsun': 3.828e26, #watts
         'delta_c':1.686,
         'halo_model': 'Tinker08'
@@ -88,7 +88,8 @@ default_constants={
         'minute_to_degree': 1.0/60,
         'degree_to_minute': 60.0,
         'GHz_to_Hz': 1e9,
-        'Jy': 1e-26 # Watts. m^{-2} HZ^{-1}
+        'Jy': 1e-26, # Watts. m^{-2} HZ^{-1}
+        'kb_si': 1.38e-23 #J/K
     
         
         }

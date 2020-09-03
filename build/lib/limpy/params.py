@@ -78,7 +78,8 @@ default_constants={
         'c_in_m': 3e8, #meter 
         'G_const': 6.67*1e-11,  # kg^{-2} m^2 
         
-        
+        'ghz_to_hz': 1e9,  # Giga-Hertz to Hertz
+          
         # distances
         'mpc_to_m': 3.086e+22, # meter
         'm_to_mpc': 3.24e-23, # Mpc
@@ -88,6 +89,7 @@ default_constants={
         'degree_to_minute': 60.0,
         'GHz_to_Hz': 1e9,
         'Jy': 1e-26 # Watts. m^{-2} HZ^{-1}
+    
         
         }
 
