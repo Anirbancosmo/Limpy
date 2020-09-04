@@ -33,8 +33,16 @@ kb_si=p.default_constants['kb_si']
 omega_lambda=p.cosmo_params['omega_lambda']
 omega_matter=p.cosmo_params['omega_mh2']/small_h**2
 use_scatter=p.code_params['use_scatter']
-cosmo=cosmos.cosmo()
 
+nu_rest_CO10=p.line_frequency['nu_CO10']
+
+cosmo=cosmos.cosmo()
+"""
+# IF we want to keep same cosmological parameters for the code and HMFcal
+"""
+#from hmf import cosmo as cosmo_hmf
+#my_cosmo = cosmo_hmf.Cosmology()
+#my_cosmo.update(cosmo_params={"H0":71,"Om0":0.281,"Ode0":0.719,"Ob0":0.046})
 
 def hmf(z):
     '''Shet, Mo &  Tormen 2001'''
@@ -210,75 +218,80 @@ def sfr_to_lcp_nonscatter_chung(z, sfr):
     log_lcp=alpha_z*np.log10(sfr)+beta_z
     return log_lcp
 
-def mhalo_to_lco_fit(Mhalo,z, M10=4.17e12, M11=-1.17, N10=0.0033, N11=0.04,\
-    b10=0.95, b11=0.48, y10=0.66, y11=-0.33):
-    assert z<=3, "LCO-Mhalo relation is valid for redshift between 0 and 3."
-
+def mhalo_to_lco_prime_fit(Mhalo,z, nu_rest):
     Mhalo=np.array(Mhalo)
+    #assert z<=3, "LCO-Mhalo relation is valid for redshift between 0 and 3."
+    M10=4.17e12
+    M11=-1.17
+    N10=0.0033
+    N11=0.04
+    b10=0.95
+    b11=0.48
+    y10=0.66
+    y11=-0.33
+
 
     M1_z=10**(np.log10(M10)+(M11*z)/(z+1))
     N_z=N10+(N11*z)/(z+1)
     b_z=b10+(b11*z)/(z+1)
     y_z=y10+(y11*z)/(z+1)
 
-    Lco=2*N_z*Mhalo/((Mhalo/M1_z)**-b_z+(Mhalo/M1_z)**y_z)
-    return Lco
+    Lco_prime=(2*N_z*Mhalo)/((Mhalo/M1_z)**-b_z+(Mhalo/M1_z)**y_z)
+    
+    
+    return Lco_prime
 
 
 
-def mhalo_to_lcp_fit(Mhalo,z, use_scatter=use_scatter):
+def mhalo_to_lcp_fit(Mhalo,z):
     Mhalo=np.array(Mhalo)
-    M1_m, M1_std=2.39e-5, 1.86e-5
-    N1_m, N1_std=4.19e11, 3.27e11
-    alpha_m, alpha_std=1.79, 0.30
-    beta_m, beta_std=0.49, 0.38
-
-    if(use_scatter==True):
-         M1= np.random.normal(M1_m,M1_std)
-         N1= np.random.normal(N1_m,N1_std)
-         alpha= np.random.normal(alpha_m,alpha_std)
-         beta= np.random.normal(beta_m,beta_std)
-
-    if(use_scatter==False):
-         M1, N1, alpha, beta=M1_m, N1_m, alpha_m, beta_m
+    M1=2.39e-5
+    N1=4.19e11
+    alpha=1.79
+    beta=0.49
 
     F_z=((1+z)**2.7/(1+((1+z)/2.9)**5.6))**alpha
     Lcii=F_z*((Mhalo/M1)**beta)*np.exp(-N1/Mhalo)
     return Lcii
 
+def lco_prime_to_lco(Mhalo, z, line_name='CO12'):
+    line_name_len=len(line_name)
+    if(line_name_len==4):
+         J_lader=int(line_name[2])
+    elif(line_name_len==5 or line_name_len==6):
+        J_lader=int(line_name[2:4])
+        
+    Lco_prime=mhalo_to_lco_prime_fit(Mhalo, z, nu_rest_CO10)
+    L_line=4.9e-5*(J_lader*nu_rest_CO10/nu_rest_CO10)**3*Lco_prime  # Equation 4 of  arxiv:1706.03005
+    return L_line
+    
 
 def mhalo_to_lline(Mhalo, z, line_name='CII'):
-    mass_bin, dndm= hmf(z)
-
     if(line_name=="CII"):
         L_line=mhalo_to_lcp_fit(Mhalo, z)
-    if(line_name=="CO10"):
-        L_line=mhalo_to_lco_fit(Mhalo, z)
-
+    if(line_name[0:2]=="CO"):
+        L_line=lco_prime_to_lco(Mhalo, z, line_name=line_name)
     return L_line
 
-def I_nu(z,nu_rest_line,line_name="CII",z_line=0.0):
+def I_nu(z,nu_rest_line,line_name="CII"):
     #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
     mass_bin, dndm= hmf(z)
+    mass_bin, dndm=mass_bin/small_h, dndm* (mpc_to_m)**-3 * small_h**4
 
     L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
-
     L_line*=Lsun
-    #print(mass_bin)
+    factor= (c_in_m)/(4*Ghz_to_hz*np.pi*nu_rest_line*cosmo.H_z(z))
 
-    factor= (c_in_m)/(4*Ghz_to_hz*np.pi*nu_rest_line*cosmo.H_z(z_line))
-
-    integrand=(factor * dndm * L_line * (mpc_to_m)**-3) * small_h**4
-
-
+    integrand=dndm * L_line 
     integration=simps(integrand, mass_bin)
 
-    return (integration)/(jy_unit)
+    return (factor*integration)/(jy_unit)
 
 
-def T_line(z,nu_rest_line,line_name="CII",fduty=1.0,z_line=0.0):
+def T_line(z,nu_rest_line,line_name="CII",fduty=1.0):
     #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
     mass_bin, dndm= hmf(z)
+    mass_bin, dndm=mass_bin/small_h, dndm* (mpc_to_m)**-3 * small_h**4
 
 
     L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
@@ -286,34 +299,28 @@ def T_line(z,nu_rest_line,line_name="CII",fduty=1.0,z_line=0.0):
     L_line*=Lsun
     #print(mass_bin)
     nu_rest_line_Hz=nu_rest_line*Ghz_to_hz
-    
-    factor= fduty*(c_in_m**3*(1+z_line)**2)/(8*np.pi*kb_si*nu_rest_line_Hz**3*cosmo.H_z(z_line))
-
-    integrand=(dndm * L_line * (mpc_to_m)**-3) * small_h**4
-
-
+    integrand=dndm * L_line 
     integration=simps(integrand, mass_bin)
-    integration*= factor
+    
+    factor=fduty*(c_in_m**3/8.0/np.pi)*((1+z)**2/(kb_si*nu_rest_line_Hz**3*cosmo.H_z(z)))
+    result=factor*integration
 
-    return integration
+    return result
 
 
 
-
-
-def I_nu_sim(z,nu_rest_line,line_name="CII",z_line=0.0):
+def I_nu_sim(z,nu_rest_line,line_name="CII"):
+    
     mass_bin, dndm= hmf(z)
-
+    mass_bin, dndm=mass_bin/small_h, dndm* (mpc_to_m)**-3 * small_h**4
     #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
-
     L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
-
     L_line*=Lsun
     #print(mass_bin)
 
-    factor= (c_in_m)/(4*Ghz_to_hz*np.pi*nu_rest_line*cosmo.H_z(z_line))
+    factor= (c_in_m)/(4*Ghz_to_hz*np.pi*nu_rest_line*cosmo.H_z(z))
 
-    integrand=(factor * dndm * L_line * (mpc_to_m)**-3) * small_h**4
+    integrand=factor * dndm * L_line 
 
 
     integration=simps(integrand, mass_bin)
@@ -325,11 +332,13 @@ def I_nu_sim(z,nu_rest_line,line_name="CII",z_line=0.0):
 def P_shot(z,line_name='CII'):
     #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
     mass_bin, dndm= hmf(z)
+    mass_bin, dndm=mass_bin/small_h, dndm* small_h**4
+    
     L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
 
-    integrand_numerator=dndm*small_h**4*(L_line)**2
+    integrand_numerator=dndm*(L_line)**2
 
-    integrand_denominator=dndm*small_h**4*(L_line)
+    integrand_denominator=dndm*(L_line)
 
     int_numerator=simps(integrand_numerator, mass_bin)
     int_denominator=simps(integrand_denominator, mass_bin)
@@ -339,7 +348,7 @@ def P_shot(z,line_name='CII'):
 
 def nu(m,z):
     mf=MassFunction(z=z,Mmin=np.log10(Mmin), Mmax=np.log10(Mmax), hmf_model= Halo_model)
-    m_n, nu=mf.m, mf.nu
+    m_n, nu=mf.m/small_h, mf.nu
     nu_int=interp1d(m_n, nu)
     return  nu_int(m)
 
@@ -363,12 +372,13 @@ def bias_dm(m,z):
 
 def b_line(z, line_name='CII'):
     mass_bin, dndm= hmf(z)
+    mass_bin, dndm=mass_bin/small_h, dndm* (mpc_to_m)**-3 * small_h**4
     L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
     L_line*=Lsun
 
-    integrand_numerator=dndm*small_h**4*(L_line)*bias_dm(mass_bin, z)
+    integrand_numerator=dndm*(L_line)*bias_dm(mass_bin, z)
 
-    integrand_denominator=dndm*small_h**4*(L_line)
+    integrand_denominator=dndm*(L_line)
 
     int_numerator=simps(integrand_numerator, mass_bin)
     int_denominator=simps(integrand_denominator, mass_bin)

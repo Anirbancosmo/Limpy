@@ -30,7 +30,7 @@ code_params={
 
 astro_params={
         'Mmin': 1e9,
-        'Mmax': 1e12,
+        'Mmax': 1e15,
         'Lsun': 3.828e26, #watts
         'delta_c':1.686,
         'halo_model': 'Tinker08'
@@ -38,7 +38,8 @@ astro_params={
 
 
 line_frequency={
-    'nu_CII': 1900 #GHz
+    'nu_CII': 1900, #GHz
+    'nu_CO10': 115.27 #GHz
     }
 
 
