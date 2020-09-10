@@ -5,6 +5,7 @@ Created on Mon Jul 20 10:55:42 2020
 
 @author: anirbanroy
 """
+
 import numpy as np
 from hmf import MassFunction, transfer
 import numpy as np
@@ -237,8 +238,8 @@ def mhalo_to_lco_prime_fit(Mhalo,z, nu_rest):
     y_z=y10+(y11*z)/(z+1)
 
     Lco_prime=(2*N_z*Mhalo)/((Mhalo/M1_z)**-b_z+(Mhalo/M1_z)**y_z)
-    
-    
+
+
     return Lco_prime
 
 
@@ -254,17 +255,30 @@ def mhalo_to_lcp_fit(Mhalo,z):
     Lcii=F_z*((Mhalo/M1)**beta)*np.exp(-N1/Mhalo)
     return Lcii
 
-def lco_prime_to_lco(Mhalo, z, line_name='CO12'):
+def lco_prime(Mhalo, z, line_name='CO10'):
+    #FIXME please check the relation for J-lader
     line_name_len=len(line_name)
     if(line_name_len==4):
          J_lader=int(line_name[2])
     elif(line_name_len==5 or line_name_len==6):
         J_lader=int(line_name[2:4])
-        
+
     Lco_prime=mhalo_to_lco_prime_fit(Mhalo, z, nu_rest_CO10)
-    L_line=4.9e-5*(J_lader*nu_rest_CO10/nu_rest_CO10)**3*Lco_prime  # Equation 4 of  arxiv:1706.03005
+    L_line=(J_lader)**3*Lco_prime
     return L_line
-    
+
+
+def lco_prime_to_lco(Mhalo, z, line_name='CO10'):
+    line_name_len=len(line_name)
+    if(line_name_len==4):
+         J_lader=int(line_name[2])
+    elif(line_name_len==5 or line_name_len==6):
+        J_lader=int(line_name[2:4])
+
+    Lco_prime=mhalo_to_lco_prime_fit(Mhalo, z, nu_rest_CO10)
+    L_line=4.9e-5*(J_lader)**3*Lco_prime  # Equation 4 of  arxiv:1706.03005
+    return L_line
+
 
 def mhalo_to_lline(Mhalo, z, line_name='CII'):
     if(line_name=="CII"):
@@ -282,7 +296,7 @@ def I_nu(z,nu_rest_line,line_name="CII"):
     L_line*=Lsun
     factor= (c_in_m)/(4*Ghz_to_hz*np.pi*nu_rest_line*cosmo.H_z(z))
 
-    integrand=dndm * L_line 
+    integrand=dndm * L_line
     integration=simps(integrand, mass_bin)
 
     return (factor*integration)/(jy_unit)
@@ -299,9 +313,9 @@ def T_line(z,nu_rest_line,line_name="CII",fduty=1.0):
     L_line*=Lsun
     #print(mass_bin)
     nu_rest_line_Hz=nu_rest_line*Ghz_to_hz
-    integrand=dndm * L_line 
+    integrand=dndm * L_line
     integration=simps(integrand, mass_bin)
-    
+
     factor=fduty*(c_in_m**3/8.0/np.pi)*((1+z)**2/(kb_si*nu_rest_line_Hz**3*cosmo.H_z(z)))
     result=factor*integration
 
@@ -310,7 +324,7 @@ def T_line(z,nu_rest_line,line_name="CII",fduty=1.0):
 
 
 def I_nu_sim(z,nu_rest_line,line_name="CII"):
-    
+
     mass_bin, dndm= hmf(z)
     mass_bin, dndm=mass_bin/small_h, dndm* (mpc_to_m)**-3 * small_h**4
     #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
@@ -320,7 +334,7 @@ def I_nu_sim(z,nu_rest_line,line_name="CII"):
 
     factor= (c_in_m)/(4*Ghz_to_hz*np.pi*nu_rest_line*cosmo.H_z(z))
 
-    integrand=factor * dndm * L_line 
+    integrand=factor * dndm * L_line
 
 
     integration=simps(integrand, mass_bin)
@@ -328,12 +342,11 @@ def I_nu_sim(z,nu_rest_line,line_name="CII"):
     return (integration)/(jy_unit)
 
 
-
 def P_shot(z,line_name='CII'):
     #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
     mass_bin, dndm= hmf(z)
     mass_bin, dndm=mass_bin/small_h, dndm* small_h**4
-    
+
     L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
 
     integrand_numerator=dndm*(L_line)**2
@@ -344,6 +357,27 @@ def P_shot(z,line_name='CII'):
     int_denominator=simps(integrand_denominator, mass_bin)
 
     return int_numerator/int_denominator**2
+
+
+
+
+def P_shot_temp(z,line_name='CII',fduty=1.0):
+    #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
+    mass_bin, dndm= hmf(z)
+    mass_bin, dndm=mass_bin/small_h, dndm* small_h**4
+
+    L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
+
+    integrand_numerator=dndm*(L_line)**2
+
+    integrand_denominator=dndm*(L_line)
+
+    int_numerator=simps(integrand_numerator, mass_bin)
+    int_denominator=simps(integrand_denominator, mass_bin)
+
+    return int_numerator/int_denominator**2/fduty
+
+
 
 
 def nu(m,z):
@@ -385,13 +419,38 @@ def b_line(z, line_name='CII'):
     return int_numerator/int_denominator
 
 
-def Pk_line(k,z,nu_rest_line,line_name='CII',label='total'):
-    I_nu_square=I_nu(z,nu_rest_line, line_name=line_name)**2
+def Pk_line_te(k,z,nu_rest_line,line_name='CII',fduty=1.0,label='total'):
+    T_line_square=T_line(z,nu_rest_line, line_name=line_name, fduty=fduty)**2
     pk_lin=cosmo.pk_camb(k/small_h,z)
     if(label=='total'):
-        res=I_nu_square*(b_line(z, line_name=line_name)**2*pk_lin+P_shot(z, line_name=line_name))
+        res=T_line_square*(b_line(z, line_name=line_name)**2*pk_lin+P_shot(z, line_name=line_name))
     if(label=='clustering'):
-        res=I_nu_square*(b_line(z, line_name=line_name)**2*pk_lin)
+        res=T_line_square*(b_line(z, line_name=line_name)**2*pk_lin)
     if(label=='shot'):
-        res=I_nu_square*(P_shot(z, line_name=line_name))
+        res=T_line_square*(P_shot(z, line_name=line_name))
     return res
+
+
+#k is in unit of (h Mpc^-1)
+
+def Pk_line(k,z,nu_rest_line,fduty=1.0,line_name='CII',label='total', pk_unit='temperature'):
+    if(pk_unit=='temperature'):
+        I_nu_square=I_nu(z,nu_rest_line, line_name=line_name)**2
+        pk_lin=cosmo.pk_camb(k/small_h,z)
+        if(label=='total'):
+            res=I_nu_square*(b_line(z, line_name=line_name)**2*pk_lin+P_shot(z, line_name=line_name))
+        if(label=='clustering'):
+            res=I_nu_square*(b_line(z, line_name=line_name)**2*pk_lin)
+        if(label=='shot'):
+            res=I_nu_square*(P_shot(z, line_name=line_name))
+        return res
+    if(pk_unit=='inetnsity'):
+        T_line_square=T_line(z,nu_rest_line, line_name=line_name, fduty=fduty)**2
+        pk_lin=cosmo.pk_camb(k/small_h,z)
+        if(label=='total'):
+            res=T_line_square*(b_line(z, line_name=line_name)**2*pk_lin+P_shot(z, line_name=line_name))
+        if(label=='clustering'):
+            res=T_line_square*(b_line(z, line_name=line_name)**2*pk_lin)
+        if(label=='shot'):
+            res=T_line_square*(P_shot(z, line_name=line_name))
+        return res
