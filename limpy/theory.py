@@ -13,12 +13,7 @@ from scipy.integrate import simps
 from scipy.interpolate import interp1d
 from hmf import MassFunction
 
-"""
-# IF we want to keep same cosmological parameters for the code and HMFcal
-"""
-#from hmf import cosmo as cosmo_hmf
-#my_cosmo = cosmo_hmf.Cosmology()
-#my_cosmo.update(cosmo_params={"H0":71,"Om0":0.281,"Ode0":0.719,"Ob0":0.046})
+
 
 def hmf(z, Mmin=p.Mmin, Mmax=p.Mmax, output_quantity='dndm'):
     '''Shet, Mo &  Tormen 2001'''
@@ -274,21 +269,31 @@ def T_line(z,nu_rest_line,line_name="CII",fduty=1.0):
 
     L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
     L_line*=p.Lsun
-
+    
     nu_rest_line_Hz=nu_rest_line*p.Ghz_to_hz
+    factor=fduty*(p.c_in_m**3/8.0/np.pi)*((1+z)**2/(p.kb_si*nu_rest_line_Hz**3*p.cosmo.H_z(z)))
+    
     integrand=dndm * L_line
     integration=simps(integrand, mass_bin)
-    factor=fduty*(p.c_in_m**3/8.0/np.pi)*((1+z)**2/(p.kb_si*nu_rest_line_Hz**3*p.cosmo.H_z(z)))
+    
     result=factor*integration
     return result
 
 
-def I_nu(z,nu_rest_line,line_name="CII", fduty=1.0):
-    T=T_line(z,nu_rest_line,line_name=line_name,fduty=fduty)
-    nu_rest_line_Hz=p.nu_rest_line*p.Ghz_to_hz
-    I=(2*p.kb_si*T/p.c_in_m**2)*(nu_rest_line_Hz**2/(1+z)**2)
-    
-    return I/(p.jy_unit)
+def I_nu(z,nu_rest_line,line_name="CII",fduty=1.0):
+
+    mass_bin, dndm= hmf(z)
+
+    L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
+    L_line*=p.Lsun
+
+    nu_rest_line_Hz=nu_rest_line*p.Ghz_to_hz
+    factor=fduty*(p.c_in_m/(4.0*np.pi*nu_rest_line_Hz*p.cosmo.H_z(z)))
+    integrand=dndm * L_line
+    integration=simps(integrand, mass_bin)
+
+    result=factor*integration
+    return result/(p.jy_unit)
 
 
 def P_shot(z,line_name='CII'):

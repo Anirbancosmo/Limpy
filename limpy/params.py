@@ -24,8 +24,8 @@ jy_unit=inp.default_constants['Jy']
 Ghz_to_hz=inp.default_constants['ghz_to_hz']
 kb_si=inp.default_constants['kb_si']
 
-nu_rest_line=inp.line_frequency['nu_CII']
-nu_rest_CO10=inp.line_frequency['nu_CO10']
+nu_rest_line=inp.default_line_params['nu_CII']
+nu_rest_CO10=inp.default_line_params['nu_CO10']
 
 small_h=inp.cosmo_params['h']
 omega_matter=inp.cosmo_params['omega_mh2']/small_h**2
@@ -34,10 +34,16 @@ omega_lambda=inp.cosmo_params['omega_lambda']
 use_scatter=inp.code_params['use_scatter']
 
 
-a_off=inp.default_lcp_scatter_params['a_off']
-a_std=inp.default_lcp_scatter_params['a_std']
-b_off=inp.default_lcp_scatter_params['b_off']
-b_std=inp.default_lcp_scatter_params['b_std']
+a_off=inp.default_L_CII_scatter_params['a_off']
+a_std=inp.default_L_CII_scatter_params['a_std']
+b_off=inp.default_L_CII_scatter_params['b_off']
+b_std=inp.default_L_CII_scatter_params['b_std']
 
 cosmo=cosmos.cosmo()
 
+"""
+# IF we want to keep same cosmological parameters for the code and HMFcal
+"""
+#from hmf import cosmo as cosmo_hmf
+#my_cosmo = cosmo_hmf.Cosmology()
+#my_cosmo.update(cosmo_params={"H0":71,"Om0":0.281,"Ode0":0.719,"Ob0":0.046})
