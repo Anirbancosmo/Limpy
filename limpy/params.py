@@ -1,106 +1,43 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jun  3 23:55:59 2020
+Created on Sun Sep 13 12:55:51 2020
 
 @author: anirbanroy
 """
+import numpy as np
+import inputs as inp
+import cosmos
 
-"This is a dictionary of the default parameters"
+#parameters
+Mmin=inp.astro_params['Mmin']
+Mmax=inp.astro_params['Mmax']
 
-# Parameters for SFR-LCII relation with scatter from Schaerer et. al 2020 
-# arxiv: 2002.00979 (TABLE: A.1)
+Lsun=inp.astro_params['Lsun']
+delta_c=inp.astro_params['delta_c']
+Halo_model=inp.astro_params['halo_model']
 
-cosmo_params={
-        'h': 0.6766,
-        'omega_lambda': 0.6889,
-        'omgega_bh2': 0.02242,
-        'omgega_ch2': 0.11933,
-        'omega_mh2' : 0.14240,
-        'omega_k': -0.05,
-        'tau': 0.0561,   
-        'ns': 0.965
-        }
+c_in_m=inp.default_constants['c_in_m']
+mpc_to_m=inp.default_constants['mpc_to_m']
+m_to_mpc=inp.default_constants['m_to_mpc']
+jy_unit=inp.default_constants['Jy']
+Ghz_to_hz=inp.default_constants['ghz_to_hz']
+kb_si=inp.default_constants['kb_si']
 
-code_params={
-        'use_scatter': False,
-        'use_pk': 'linear' # or nonlinear
-    }
+nu_rest_line=inp.line_frequency['nu_CII']
+nu_rest_CO10=inp.line_frequency['nu_CO10']
 
+small_h=inp.cosmo_params['h']
+omega_matter=inp.cosmo_params['omega_mh2']/small_h**2
+omega_lambda=inp.cosmo_params['omega_lambda']
 
-astro_params={
-        'Mmin': 1e9,
-        'Mmax': 1e15,
-        'Lsun': 3.828e26, #watts
-        'delta_c':1.686,
-        'halo_model': 'Tinker08'
-        }
+use_scatter=inp.code_params['use_scatter']
 
 
-line_frequency={
-    'nu_CII': 1900, #GHz
-    'nu_CO10': 115.27 #GHz
-    }
+a_off=inp.default_lcp_scatter_params['a_off']
+a_std=inp.default_lcp_scatter_params['a_std']
+b_off=inp.default_lcp_scatter_params['b_off']
+b_std=inp.default_lcp_scatter_params['b_std']
 
+cosmo=cosmos.cosmo()
 
-default_lcp_scatter_params={
-       'a_off':6.98,
-       'a_std':0.16,
-       'b_off':0.99,
-       'b_std':0.09
-       }
-
-
-default_lot_scatter_params={
-	   'a_off':7.4,
-       'a_std':0.16,
-       'b_off':0.97,
-       'b_std':0.09
-}
-
-
-
-# Parameters for SFR-LCII relation from Chung et. al 2020
-default_lcp_chung_params={
-        'a': 1.4,
-        'b': 0.07,
-        'c': 7.1,
-        'd': 0.07,
-        }
-
-
-# dummy values to extend the SFR-Mhalo relation when halomass goes below M_min
-default_dummy_values={
-        'lcp_low': 1e-12
-        }
-
-
-default_constants={
-        'c_in_m': 3e8, #meter 
-        'G_const': 6.67*1e-11,  # kg^{-2} m^2 
-        
-        'ghz_to_hz': 1e9,  # Giga-Hertz to Hertz
-          
-        # distances
-        'mpc_to_m': 3.086e+22, # meter
-        'm_to_mpc': 3.24e-23, # Mpc
-        
-        'km_to_m': 1e3, #meter
-        'minute_to_degree': 1.0/60,
-        'degree_to_minute': 60.0,
-        'GHz_to_Hz': 1e9,
-        'Jy': 1e-26, # Watts. m^{-2} HZ^{-1}
-        'kb_si': 1.38e-23 #J/K
-    
-        
-        }
-
-
-experiments={'ccatp':
-        {
-                220:{'nu_central':220,'dnu':2.2, 'theta': 57},
-                280:{'nu_central':280,'dnu':2.8, 'theta': 45},
-                350:{'nu_central':350,'dnu':3.5, 'theta': 35},
-                410:{'nu_central':410,'dnu':4.1, 'theta': 30},
-        }
-        }

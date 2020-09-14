@@ -7,37 +7,12 @@ Created on Mon Jul 20 10:55:42 2020
 """
 
 import numpy as np
-from hmf import MassFunction, transfer
-import numpy as np
 import params as p
 import matplotlib.pyplot as plt
-import lline as ll
-import cosmos
 from scipy.integrate import simps
-from scipy.interpolate import interp2d, interp1d
+from scipy.interpolate import interp1d
+from hmf import MassFunction
 
-#paramete
-Mmin=p.astro_params['Mmin']
-Mmax=p.astro_params['Mmax']
-nu_rest_line=p.line_frequency['nu_CII']
-c_in_m=p.default_constants['c_in_m']
-mpc_to_m=p.default_constants['mpc_to_m']
-m_to_mpc=p.default_constants['m_to_mpc']
-small_h=p.cosmo_params['h']
-Lsun=p.astro_params['Lsun']
-jy_unit=p.default_constants['Jy']
-delta_c=p.astro_params['delta_c']
-Halo_model=p.astro_params['halo_model']
-Ghz_to_hz=p.default_constants['ghz_to_hz']
-kb_si=p.default_constants['kb_si']
-
-omega_lambda=p.cosmo_params['omega_lambda']
-omega_matter=p.cosmo_params['omega_mh2']/small_h**2
-use_scatter=p.code_params['use_scatter']
-
-nu_rest_CO10=p.line_frequency['nu_CO10']
-
-cosmo=cosmos.cosmo()
 """
 # IF we want to keep same cosmological parameters for the code and HMFcal
 """
@@ -45,15 +20,17 @@ cosmo=cosmos.cosmo()
 #my_cosmo = cosmo_hmf.Cosmology()
 #my_cosmo.update(cosmo_params={"H0":71,"Om0":0.281,"Ode0":0.719,"Ob0":0.046})
 
-def hmf(z, Mmin=Mmin, Mmax=Mmax, output_quantity='dndm'):
+def hmf(z, Mmin=p.Mmin, Mmax=p.Mmax, output_quantity='dndm'):
     '''Shet, Mo &  Tormen 2001'''
-    mf=MassFunction(z=z,Mmin=np.log10(Mmin), Mmax=np.log10(Mmax), hmf_model= Halo_model)
+    mf=MassFunction(z=z,Mmin=np.log10(p.Mmin), Mmax=np.log10(p.Mmax), hmf_model= p.Halo_model)
     #return mf.m, mf.dndlog10m
     if(output_quantity=='dndm'):
-        hm, dndm= mf.m/small_h, mf.dndm* (mpc_to_m)**-3 * small_h**4
+        hm, dndm= mf.m/p.small_h, mf.dndm * p.small_h**4*(p.mpc_to_m)**-3
+
         return hm, dndm
     if(output_quantity=='nu'):
-        return mf.m/small_h, mf.nu
+
+        return mf.m/p.small_h, mf.nu
 
 
 
@@ -92,10 +69,8 @@ def read_sfr_highm(SFR_filename):
 
     Note: Columns are: Scale factor, SFR, Err_Up, Err_Down (all linear units)
     """
-
     # read SFR parameters from SFR file generated from Universe machine
     scale_fac, SFR, error_SFR_up, error_SFR_down=np.loadtxt(SFR_filename,unpack=True)
-
     # scale factor to redshift
     z=1.0/scale_fac-1.0
 
@@ -151,13 +126,12 @@ def make_halocat(halo_file, filetype='npz',boxsize=160):
     del halo_x
     del halo_y
     del halo_z
-
     halo_cm=halo_cm.flatten()
+
     return halomass, halo_cm
 
 
-def sfr_to_lcp_scatter(z, sfr,a_off=p.default_lcp_scatter_params['a_off'],a_std=p.default_lcp_scatter_params['a_std'],
-                       b_off=p.default_lcp_scatter_params['b_off'],b_std=p.default_lcp_scatter_params['b_std']):
+def sfr_to_lcp_scatter(z, sfr):
 
     """
     Calculates lumiosity of the CII lines from SFR assuming a 3\sigma Gussian scatter. The parameter values for the scattered relation
@@ -173,14 +147,15 @@ def sfr_to_lcp_scatter(z, sfr,a_off=p.default_lcp_scatter_params['a_off'],a_std=
     sfr_len=len(sfr)
     log_L_cp=np.zeros(sfr_len)
     for i in range(sfr_len):
-        a= np.random.normal(a_off,a_std)
-        b= np.random.normal(b_off,b_std)
+        a= np.random.normal(p.a_off, p.a_std)
+        b= np.random.normal(p.b_off, p.b_std)
         log_L_cp[i]=(a+b*np.log10(sfr[i]))
+
     return log_L_cp
 
 
 
-def sfr_to_lcp_nonscatter(z, sfr,a_off=p.default_lcp_scatter_params['a_off'],b_off=p.default_lcp_scatter_params['b_off']):
+def sfr_to_lcp_nonscatter(z, sfr):
     """
     This function returns luminosity of CII lines in the unit of L_sun. This does not include the scatter, rather
     this is the mean relation.
@@ -192,8 +167,7 @@ def sfr_to_lcp_nonscatter(z, sfr,a_off=p.default_lcp_scatter_params['a_off'],b_o
     \beta_z=c-d*z
     values are mentioned
     """
-    a,b=a_off, b_off
-
+    
     if np.isscalar(sfr)==True:
         sfr=np.atleast_1d(sfr)
 
@@ -201,7 +175,8 @@ def sfr_to_lcp_nonscatter(z, sfr,a_off=p.default_lcp_scatter_params['a_off'],b_o
     log_L_cp=np.zeros(sfr_len)
 
     for i in range(sfr_len):
-        log_L_cp[i]=(a+b*np.log10(sfr[i]))
+        log_L_cp[i]=(p.a_off+p.b_off*np.log10(sfr[i]))
+
     return log_L_cp
 
 
@@ -222,6 +197,7 @@ def sfr_to_lcp_nonscatter_chung(z, sfr):
     alpha_z= a-b*z
     beta_z= c- d*z
     log_lcp=alpha_z*np.log10(sfr)+beta_z
+
     return log_lcp
 
 def mhalo_to_lco_prime_fit(Mhalo,z, nu_rest):
@@ -235,8 +211,6 @@ def mhalo_to_lco_prime_fit(Mhalo,z, nu_rest):
     b11=0.48
     y10=0.66
     y11=-0.33
-
-
     M1_z=10**(np.log10(M10)+(M11*z)/(z+1))
     N_z=N10+(N11*z)/(z+1)
     b_z=b10+(b11*z)/(z+1)
@@ -257,6 +231,7 @@ def mhalo_to_lcp_fit(Mhalo,z):
 
     F_z=((1+z)**2.7/(1+((1+z)/2.9)**5.6))**alpha
     Lcii=F_z*((Mhalo/M1)**beta)*np.exp(-N1/Mhalo)
+
     return Lcii
 
 def lco_prime(Mhalo, z, line_name='CO10'):
@@ -266,9 +241,9 @@ def lco_prime(Mhalo, z, line_name='CO10'):
          J_lader=int(line_name[2])
     elif(line_name_len==5 or line_name_len==6):
         J_lader=int(line_name[2:4])
-
-    Lco_prime=mhalo_to_lco_prime_fit(Mhalo, z, nu_rest_CO10)
+    Lco_prime=mhalo_to_lco_prime_fit(Mhalo, z, p.nu_rest_CO10)
     L_line=(J_lader)**3*Lco_prime
+
     return L_line
 
 
@@ -279,102 +254,61 @@ def lco_prime_to_lco(Mhalo, z, line_name='CO10'):
     elif(line_name_len==5 or line_name_len==6):
         J_lader=int(line_name[2:4])
 
-    Lco_prime=mhalo_to_lco_prime_fit(Mhalo, z, nu_rest_CO10)
+    Lco_prime=mhalo_to_lco_prime_fit(Mhalo, z, p.nu_rest_CO10)
     L_line=4.9e-5*(J_lader)**3*Lco_prime  # Equation 4 of  arxiv:1706.03005
-    return L_line
 
+    return L_line
 
 def mhalo_to_lline(Mhalo, z, line_name='CII'):
     if(line_name=="CII"):
         L_line=mhalo_to_lcp_fit(Mhalo, z)
     if(line_name[0:2]=="CO"):
         L_line=lco_prime_to_lco(Mhalo, z, line_name=line_name)
+
     return L_line
-
-def I_nu(z,nu_rest_line,line_name="CII"):
-    #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
-    mass_bin, dndm= hmf(z)
-   
-    L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
-    L_line*=Lsun
-    factor= (c_in_m)/(4*Ghz_to_hz*np.pi*nu_rest_line*cosmo.H_z(z))
-
-    integrand=dndm * L_line
-    integration=simps(integrand, mass_bin)
-
-    return (factor*integration)/(jy_unit)
 
 
 def T_line(z,nu_rest_line,line_name="CII",fduty=1.0):
-    #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
+
     mass_bin, dndm= hmf(z)
 
     L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
+    L_line*=p.Lsun
 
-    L_line*=Lsun
-    #print(mass_bin)
-    nu_rest_line_Hz=nu_rest_line*Ghz_to_hz
+    nu_rest_line_Hz=nu_rest_line*p.Ghz_to_hz
     integrand=dndm * L_line
     integration=simps(integrand, mass_bin)
-
-    factor=fduty*(c_in_m**3/8.0/np.pi)*((1+z)**2/(kb_si*nu_rest_line_Hz**3*cosmo.H_z(z)))
+    factor=fduty*(p.c_in_m**3/8.0/np.pi)*((1+z)**2/(p.kb_si*nu_rest_line_Hz**3*p.cosmo.H_z(z)))
     result=factor*integration
-
     return result
 
 
-def I_nu_sim(z,nu_rest_line,line_name="CII"):
-
-    mass_bin, dndm= hmf(z)
-    #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
-    L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
-    L_line*=Lsun
-    #print(mass_bin)
-
-    factor= (c_in_m)/(4*Ghz_to_hz*np.pi*nu_rest_line*cosmo.H_z(z))
-
-    integrand=factor * dndm * L_line
-
-    integration=simps(integrand, mass_bin)
-
-    return (integration)/(jy_unit)
+def I_nu(z,nu_rest_line,line_name="CII", fduty=1.0):
+    T=T_line(z,nu_rest_line,line_name=line_name,fduty=fduty)
+    nu_rest_line_Hz=p.nu_rest_line*p.Ghz_to_hz
+    I=(2*p.kb_si*T/p.c_in_m**2)*(nu_rest_line_Hz**2/(1+z)**2)
+    
+    return I/(p.jy_unit)
 
 
 def P_shot(z,line_name='CII'):
     #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
     mass_bin, dndm= hmf(z)
-
     L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
+    L_line*=p.Lsun
 
-    integrand_numerator=dndm*(L_line)**2
-
-    integrand_denominator=dndm*(L_line)
-
+    integrand_numerator=dndm*(L_line)**2/(p.mpc_to_m)**-3 #in Mpc unit
+    integrand_denominator=dndm*(L_line)/(p.mpc_to_m)**-3 #in Mpc unit
     int_numerator=simps(integrand_numerator, mass_bin)
     int_denominator=simps(integrand_denominator, mass_bin)
 
     return int_numerator/int_denominator**2
 
 
-def P_shot_temp(z,line_name='CII',fduty=1.0):
-    #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
-    mass_bin, dndm= hmf(z)
-
-    L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
-
-    integrand_numerator=dndm*(L_line)**2
-
-    integrand_denominator=dndm*(L_line)
-
-    int_numerator=simps(integrand_numerator, mass_bin)
-    int_denominator=simps(integrand_denominator, mass_bin)
-
-    return int_numerator/int_denominator**2/fduty
-
-
 def nu(m,z):
     m_n, nu=hmf(z, output_quantity='nu')
     nu_int=interp1d(m_n, nu)
+
     return  nu_int(m)
 
 
@@ -386,59 +320,52 @@ def bias_nu(nu, delta_v=200.):
         b = 1.5
         C = 0.019 + 0.107*y + 0.19*np.exp(-(4./y)**4.)
         c = 2.4
-        # return self.bias_norm * (1. - A*nu**a/(nu**a + self.delta_c**a) + B*nu**b + C*nu**c)
-        return (1. - A*nu**a/(nu**a + delta_c**a) + B*nu**b + C*nu**c)
+
+        return (1. - A*nu**a/(nu**a + p.delta_c**a) + B*nu**b + C*nu**c)
 
 
 def bias_dm(m,z):
     nu_m=nu(m,z)
+
     return bias_nu(nu_m, delta_v=200.)
 
 def b_line(z, line_name='CII'):
     mass_bin, dndm= hmf(z)
     L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
-    L_line*=Lsun
-
+    L_line*=p.Lsun
     integrand_numerator=dndm*(L_line)*bias_dm(mass_bin, z)
     integrand_denominator=dndm*(L_line)
-
     int_numerator=simps(integrand_numerator, mass_bin)
     int_denominator=simps(integrand_denominator, mass_bin)
+
     return int_numerator/int_denominator
 
 
-def Pk_line_te(k,z,nu_rest_line,line_name='CII',fduty=1.0,label='total'):
-    T_line_square=T_line(z,nu_rest_line, line_name=line_name, fduty=fduty)**2
-    pk_lin=cosmo.pk_camb(k,z)
-    if(label=='total'):
-        res=T_line_square*(b_line(z, line_name=line_name)**2*pk_lin+P_shot(z, line_name=line_name))
-    if(label=='clustering'):
-        res=T_line_square*(b_line(z, line_name=line_name)**2*pk_lin)
-    if(label=='shot'):
-        res=T_line_square*(P_shot(z, line_name=line_name))
-    return res
-
-
-#k is in unit of (h Mpc^-1)
-
 def Pk_line(k,z,nu_rest_line,fduty=1.0,line_name='CII',label='total', pk_unit='temperature'):
-    if(pk_unit=='temperature'):
+    if(pk_unit=='intensity'):
         I_nu_square=I_nu(z,nu_rest_line, line_name=line_name)**2
-        pk_lin=cosmo.pk_camb(k,z)
+        pk_lin=p.cosmo.pk_camb(k,z)
         if(label=='total'):
             res=I_nu_square*(b_line(z, line_name=line_name)**2*pk_lin+P_shot(z, line_name=line_name))
         if(label=='clustering'):
             res=I_nu_square*(b_line(z, line_name=line_name)**2*pk_lin)
         if(label=='shot'):
             res=I_nu_square*(P_shot(z, line_name=line_name))
-        return res
-    if(pk_unit=='inetnsity'):
+
+        d2k=k**3*res/2/np.pi**2# in (Jy/sr)^2 unit
+        return d2k
+
+
+    if(pk_unit=='temperature' or pk_unit=='muk' ):
         T_line_square=T_line(z,nu_rest_line, line_name=line_name, fduty=fduty)**2
-        pk_lin=cosmo.pk_camb(k,z)
+        pk_lin=p.cosmo.pk_camb(k,z)
         if(label=='total'):
             res=T_line_square*(b_line(z, line_name=line_name)**2*pk_lin+P_shot(z, line_name=line_name))
         if(label=='clustering'):
             res=T_line_square*(b_line(z, line_name=line_name)**2*pk_lin)
         if(label=='shot'):
             res=T_line_square*(P_shot(z, line_name=line_name))
-        return res
+
+
+        d2k=k**3*res/2/np.pi**2 #in K unit
+        return d2k*1e12  #in muK

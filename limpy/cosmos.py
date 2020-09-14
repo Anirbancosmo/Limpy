@@ -8,32 +8,30 @@ Created on Sun Jul 12 11:57:30 2020
 
 import numpy as np
 
-import params as p
+import inputs as inp
 import scipy.integrate as si
 import camb
-from camb import model, initialpower
 from camb import get_matter_power_interpolator
 class cosmo():
     
     def __init__(self):
-        self.h=p.cosmo_params['h']
-        self.ol=p.cosmo_params['omega_lambda']
-        self.ob=p.cosmo_params['omgega_bh2']/self.h**2
-        self.om=p.cosmo_params['omega_mh2']/self.h**2
-        self.ocdm=p.cosmo_params['omgega_ch2']/self.h**2
-        self.ns=p.cosmo_params['ns']
+        self.h=inp.cosmo_params['h']
+        self.ol=inp.cosmo_params['omega_lambda']
+        self.ob=inp.cosmo_params['omgega_bh2']/self.h**2
+        self.om=inp.cosmo_params['omega_mh2']/self.h**2
+        self.ocdm=inp.cosmo_params['omgega_ch2']/self.h**2
+        self.ns=inp.cosmo_params['ns']
         self.H0=100*self.h # Km/S/Mpc
            
-        if p.cosmo_params['omega_k'] is not None:
-            self.ok=p.cosmo_params['omega_k']
+        if inp.cosmo_params['omega_k'] is not None:
+            self.ok=inp.cosmo_params['omega_k']
         else:
-            self.ok=1-(p.cosmo_params['omega_mh2']/self.h**2+ self.ol)
-            
+            self.ok=1-(inp.cosmo_params['omega_mh2']/self.h**2+ self.ol)
        
-        self.G_const=p.default_constants['G_const']
-        self.c_in_m=p.default_constants['c_in_m']
-        self.mpc_to_m=p.default_constants['mpc_to_m']
-        self.km_to_m=p.default_constants['km_to_m']
+        self.G_const=inp.default_constants['G_const']
+        self.c_in_m=inp.default_constants['c_in_m']
+        self.mpc_to_m=inp.default_constants['mpc_to_m']
+        self.km_to_m=inp.default_constants['km_to_m']
             
         
         
@@ -107,27 +105,3 @@ class cosmo():
         PK = get_matter_power_interpolator(pars);
     
         return PK.P(z,k)
-        
-        
-        '''
-        if(spectra=='nonlinear'):
-            #Non-Linear spectra (Halofit)
-            pars.NonLinear = model.NonLinear_both
-            results.calc_power_spectra(pars)
-            kh_nonlin, z_nonlin, pk_nonlin = results.get_matter_power_spectrum(minkh=1e-4, maxkh=1, npoints = 200)
-            return kh_nonlin, z_nonlin, pk_nonlin
-        '''
-    
-# To test the code with Cosmolopy   
-
-
-cosmop = {'omega_M_0' : 0.311, 
-'omega_lambda_0' : 0.6899, 
-'omega_b_0' : 0.048974, 
-'omega_n_0' : 0.0,
-'omega_k_0' : -0.05,
-'N_nu' : 0,
-'h' : 0.6766,
-'n' : 1.0,
-'sigma_8' : 0.9
-} 
