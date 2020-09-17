@@ -392,7 +392,7 @@ def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,line_
 
 
        
-def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift, line_name='CII',halo_cutoff_mass=1e11, use_scatter=use_scatter,halocat_file_type='npz', unit='degree'):
+def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift, line_name='CII',halo_cutoff_mass=1e11, use_scatter=False,halocat_file_type='npz', unit='degree'):
     '''
     Calculate luminosity for input parameters
     '''
