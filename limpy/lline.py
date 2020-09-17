@@ -5,10 +5,8 @@ from __future__ import division
 import numpy as np
 import params as p
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import utils  
-from matplotlib import cm
 from astropy.convolution import convolve, Gaussian2DKernel
 from astropy.modeling.models import Gaussian2D
 from scipy.interpolate import RectBivariateSpline
@@ -20,8 +18,6 @@ pl.rcParams['ytick.labelsize'] = '10'
 pl.rcParams['axes.labelsize'] = '15'
 pl.rcParams['axes.labelsize'] = '15'
 
-use_scatter=p.code_params['use_scatter']
-lcp_low=p.default_dummy_values['lcp_low']
 
 sfr_filepath='../data/'
 z,m,sfr=np.loadtxt(sfr_filepath+'sfr_beherozzi.dat', unpack=True)
@@ -83,9 +79,8 @@ def make_halocat(halo_file, filetype='npz',boxsize=160):
     halo_cm=halo_cm.flatten()
     return halomass, halo_cm
 
-
-def sfr_to_lcp_scatter(z, sfr,a_off=p.default_lcp_scatter_params['a_off'],a_std=p.default_lcp_scatter_params['a_std'],
-                       b_off=p.default_lcp_scatter_params['b_off'],b_std=p.default_lcp_scatter_params['b_std']):
+'''
+def sfr_to_lcp_scatter(z, sfr):
     
     """
     Calculates lumiosity of the CII lines from SFR assuming a 3\sigma Gussian scatter. The parameter values for the scattered relation
@@ -95,20 +90,22 @@ def sfr_to_lcp_scatter(z, sfr,a_off=p.default_lcp_scatter_params['a_off'],a_std=
     
     return: luminosity of CII lines in log scale 
     """
+    
+    
     if np.isscalar(sfr)==True:
         sfr=np.atleast_1d(sfr)
     
     sfr_len=len(sfr)
     log_L_cp=np.zeros(sfr_len)
     for i in range(sfr_len):
-        a= np.random.normal(a_off,a_std)
-        b= np.random.normal(b_off,b_std)
+        a= np.random.normal(p.a_off,p.a_std)
+        b= np.random.normal(p.b_off,p.b_std)
         log_L_cp[i]=(a+b*np.log10(sfr[i]))
     return 10**log_L_cp
 
    
 
-def sfr_to_lcp_nonscatter(z, sfr,a_off=p.default_lcp_scatter_params['a_off'],b_off=p.default_lcp_scatter_params['b_off']):
+def sfr_to_lcp_nonscatter(z, sfr):
     """
     This function returns luminosity of CII lines in the unit of L_sun. This does not include the scatter, rather
     this is the mean relation. 
@@ -120,7 +117,7 @@ def sfr_to_lcp_nonscatter(z, sfr,a_off=p.default_lcp_scatter_params['a_off'],b_o
     \beta_z=c-d*z
     values are mentioned 
     """
-    a,b=a_off, b_off
+  
   
     if np.isscalar(sfr)==True:
         sfr=np.atleast_1d(sfr)
@@ -129,7 +126,7 @@ def sfr_to_lcp_nonscatter(z, sfr,a_off=p.default_lcp_scatter_params['a_off'],b_o
     log_L_cp=np.zeros(sfr_len)
     
     for i in range(sfr_len):
-        log_L_cp[i]=(a+b*np.log10(sfr[i]))
+        log_L_cp[i]=(p.a_off+p.b_off*np.log10(sfr[i]))
     return 10**log_L_cp
 
 
@@ -175,7 +172,6 @@ def sfr_to_lot_scatter(z, sfr,a_off=p.default_lot_scatter_params['a_off'],a_std=
         log_L_ot[i]=(a+b*np.log10(sfr[i]))
     return 10**log_L_ot
 
-   
 
 def sfr_to_lot_nonscatter(z, sfr,a_off=p.default_lot_scatter_params['a_off'],b_off=p.default_lot_scatter_params['b_off']):
     """
@@ -200,8 +196,41 @@ def sfr_to_lot_nonscatter(z, sfr,a_off=p.default_lot_scatter_params['a_off'],b_o
     for i in range(sfr_len):
         log_L_ot[i]=(b*np.log10(sfr[i])+a)
     return 10**log_L_ot
+'''
 
+def sfr_to_L_line(z,sfr, line_name='CII', use_scatter=True):
+    """
+    Calculates lumiosity of the OIII lines from SFR assuming a 3\sigma Gussian scatter. The parameter values for the scattered relation
+    is mentioned in defalut_params module. 
     
+    Input: z and sfr
+    
+    return: luminosity of OIII lines in log scale 
+    """
+    
+    a_off, a_std, b_off, b_std=p.line_scattered_params(line_name)
+    
+    
+    
+    if np.isscalar(sfr)==True:
+        sfr=np.atleast_1d(sfr) ####Convert inputs to arrays with at least one dimension. Scalar inputs are converted to 1-dimensional arrays, whilst higher-dimensional inputs are preserved.
+    
+    sfr_len=len(sfr)
+    log_L_line=np.zeros(sfr_len)
+    
+    if(use_scatter==True):
+        for i in range(sfr_len):
+            a= np.random.normal(a_off,a_std)
+            b= np.random.normal(b_off,b_std)
+            log_L_line[i]=(a+b*np.log10(sfr[i]))
+        return 10**log_L_line
+    
+    if(use_scatter==False):
+        for i in range(sfr_len):
+            log_L_line[i]=(a_off+b_off*np.log10(sfr[i]))
+        return 10**log_L_line
+        
+
 def mhalo_to_sfr(m,z):
     """
     Returns the SFR history for discrete values of halo mass.
@@ -209,11 +238,11 @@ def mhalo_to_sfr(m,z):
     
     res=sfr_interpolation(m,z) 
     
-    res=np.where(res<1e-4, lcp_low, res)
+    res=np.where(res<1e-4, p.lcp_low, res)
     return res.flatten()
 
 
-def mhalo_to_lline(Mh, z, line_name='CII', use_scatter=use_scatter):
+def mhalo_to_lline(Mh, z, line_name='CII',use_scatter=False):
     """
     This function returns luminosity of lines (following the input line_name) in the unit of L_sun.
     Kind optitions takes the SFR: mean , up (1-sigma upper bound) and
@@ -221,23 +250,10 @@ def mhalo_to_lline(Mh, z, line_name='CII', use_scatter=use_scatter):
     """
     #if
     
-    SFR_mean=mhalo_to_sfr(Mh,z)
+    sfr=mhalo_to_sfr(Mh,z)
+    L_line=sfr_to_L_line(z,sfr, line_name=line_name, use_scatter=use_scatter)
     
-    if(line_name=='CII'):
-        #print("doing CII")
-        if(use_scatter==True):
-            l_line=sfr_to_lcp_scatter(z,SFR_mean)
-        if(use_scatter==False):
-            l_line=sfr_to_lcp_nonscatter(z,SFR_mean)
-    
-    if(line_name=='OIII'):
-        #print("doing OIII")
-        if(use_scatter==True):
-            l_line=sfr_to_lot_scatter(z,SFR_mean)
-        if(use_scatter==False):
-            l_line=sfr_to_lot_nonscatter(z,SFR_mean)
-    
-    return l_line
+    return L_line
 
 
 def slice(datacube, ngrid, nproj, option='C'):
