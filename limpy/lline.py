@@ -751,7 +751,7 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     
     global final_cov
     #mtd=p.default_constants['minute_to_degree']
-    dtm=p.default_constants['degree_to_minute']
+    dtm=p.degree_to_minute
     
     xl, yl, lum=calc_luminosity(boxsize, ngrid, nproj,halocat_file, halo_redshift, line_name=line_name,
                                 halo_cutoff_mass=halo_cutoff_mass, halocat_file_type= halocat_file_type, use_scatter=use_scatter, unit=unit)

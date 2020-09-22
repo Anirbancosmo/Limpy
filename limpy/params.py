@@ -42,6 +42,26 @@ def line_scattered_params(line_name='CII'):
     return a_off, a_std,  b_off,  b_std
     
 
+
+def nu_rest(line_name='CII'):
+    if(line_name=='CII'):
+        nu=1900
+    
+    if(line_name=='OIII'):
+        nu=3400
+    
+    if(line_name[0:2]=='CO'):
+        line_name_len=len(line_name)
+        if(line_name_len==4):
+            J_lader=int(line_name[2])
+        elif(line_name_len==5 or line_name_len==6):
+            J_lader=int(line_name[2:4])
+        nu=J_lader*115.27
+        
+    return nu
+
+
+
 lcp_low=inp.default_dummy_values['lcp_low']
 
 cosmo=cosmos.cosmo()
@@ -56,12 +76,13 @@ cosmo=cosmos.cosmo()
 
 
 #Constants
-c_in_m= 3e8, #meter 
-mpc_to_m= 3.086e+22, # meter
-m_to_mpc= 3.24e-23, # Mpc
-km_to_m= 1e3, #meter
-jy_unit= 1e-26, # Watts. m^{-2} HZ^{-1}
-Ghz_to_hz= 1e9,  # Giga-Hertz to Hertz
+c_in_m= 3e8 #meter/s
+c_in_mpc=9.72e-15 #Mpc/s
+mpc_to_m= 3.086e+22 # meter
+m_to_mpc= 3.24e-23 # Mpc
+km_to_m= 1e3 #meter
+jy_unit= 1e-26 # Watts. m^{-2} HZ^{-1}
+Ghz_to_hz= 1e9  # Giga-Hertz to Hertz
 kb_si= 1.38e-23 #J/K
 
 minute_to_degree: 1.0/60
@@ -69,4 +90,7 @@ degree_to_minute: 60.0
 
 nu_rest_CII=1900 #GHZ
 nu_rest_CO10=115 #GHZ
+
+degree_to_minute=60.0
+minute_to_degree=1.0/60
 

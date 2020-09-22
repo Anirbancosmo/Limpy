@@ -31,7 +31,7 @@ def volume_cell(boxsize,ngrid):
 
 def comoving_boxsize_to_degree(z, boxsize):
     #boxsize in Mpc
-    mpc_to_m=p.default_constants['mpc_to_m']
+    mpc_to_m=p.mpc_to_m
     boxsize=boxsize*mpc_to_m
     dc=cosmo.D_co(z)
     theta_rad=boxsize/dc
@@ -40,7 +40,7 @@ def comoving_boxsize_to_degree(z, boxsize):
 
 def physical_boxsize_to_degree(z, boxsize):
     #boxsize in Mpc
-    mpc_to_m=p.default_constants['mpc_to_m']
+    mpc_to_m=p.mpc_to_m
     boxsize=boxsize*mpc_to_m
     da=cosmo.D_angular(z)
     theta_rad=boxsize/da
