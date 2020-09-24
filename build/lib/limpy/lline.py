@@ -265,13 +265,13 @@ def plot_sfr_mhalo(Mhalo_in,colorlist=None,figname=None):
     
     colorlist=['Crimson','darkgreen','C1','blue','C5','C9']
     lw_def=3.0
-    font_legend_def=12
+    font_legend_def=13
     #alpha_def=0.3
     
     x_min_def=0.1
     x_max_def=8.0
-    y_min_def=1e-5
-    y_max_def=10000
+    y_min_def=1e-3
+    y_max_def=1000000
 
     
     for i in range (len(Mhalo_in)):
@@ -309,7 +309,7 @@ def plot_sfr_mhalo(Mhalo_in,colorlist=None,figname=None):
     plt.xlim(x_min_def,x_max_def)
     plt.ylim(y_min_def,y_max_def)
     
-    plt.ylabel(r"$\mathrm{SFR}\,\,(M_\odot/\mathrm{yr})$")
+    plt.ylabel(r"$\mathrm{SFR}\,\,(M_\odot/\mathrm{yr})$", fontsize = 14)
     plt.xlabel(r'$z$')
     
     plt.legend(loc=1, ncol=2, frameon=False, fontsize=font_legend_def)
@@ -427,7 +427,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
                density_plot=False, halo_overplot=False, plot_lines=False, unit='mpc'):
     
     
-    global lum
+
     """
     Plot a slice of gas density field and overplot the distribution of
     haloes in that slice.
@@ -655,7 +655,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         
         s = plt.scatter(i, j, c=val, s=10, marker='s',
                        edgecolor='none', rasterized=False,
-                       cmap='viridis_r',vmax=1, vmin=-1, alpha=0.9)
+                       cmap='viridis',vmax=1, vmin=-1, alpha=0.9)
         
        
 
@@ -710,7 +710,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         ax.set_aspect('equal', 'box')
         
         
-        cax1 = divider.append_axes("bottom", "3%", pad="13%")
+        cax1 = divider.append_axes("bottom", "5%", pad="20%")
         cb1 = plt.colorbar(s,cax=cax1,orientation='horizontal')
         cb1.set_label(r'$\Delta$',
                      labelpad=5)
