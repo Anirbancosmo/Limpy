@@ -8,6 +8,7 @@ Created on Sun Sep 13 12:55:51 2020
 
 import inputs as inp
 import cosmos
+import numpy as np
 
 #parameters
 
@@ -93,4 +94,6 @@ nu_rest_CO10=115 #GHZ
 
 degree_to_minute=60.0
 minute_to_degree=1.0/60
+minute_to_radian=(np.pi/10800)
 
+degree_to_radian=(np.pi/180)

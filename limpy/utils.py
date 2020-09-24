@@ -64,27 +64,24 @@ def freq_to_lambda(nu):
 
 
 def Omega_beam(theta_arcmin, factor=2.355):
-    'return in arc-min^2 unit'
     
-    return 2*np.pi*(theta_arcmin/factor)**2
-
-
-
-def Omegab(theta_arcmin, factor=2.355):
-    'return in arc-min^2 unit'
-    return 2*np.pi*(theta_arcmin/factor)**2
-
+    theta_rad=theta_arcmin*p.minute_to_radian
+    
+    return 2*np.pi*(theta_rad/factor)**2
 
 
 
 def t_pix(theta_arcmin, tobs_total, Ndet_eff, S_area):
-    omega_beam=Omega_beam(theta_arcmin, factor=2.355)
-    res=tobs_total*Ndet_eff*omega_beam/(S_area*3600)
+    omega_beam=Omega_beam(theta_arcmin)
+    S_area_rad= S_area*(p.degree_to_radian)**2
+    
+    tobs_total*=3600
+    res=tobs_total*Ndet_eff*omega_beam/(S_area_rad)
     return res
 
 
 
-def V_surv(z, A_s, B_nu, line_name='CII'):
+def V_surv(z, S_area, B_nu, line_name='CII'):
     '''
     z: redshift
     lambda_line: frequncy of line emission in micrometer
@@ -94,12 +91,12 @@ def V_surv(z, A_s, B_nu, line_name='CII'):
     
     nu=p.nu_rest(line_name)*p.Ghz_to_hz
     B_nu*=p.Ghz_to_hz
-    As_rad=A_s*(np.pi/180)**2
+    Sa_rad=S_area*(p.degree_to_radian)**2
 
     lambda_line=freq_to_lambda(nu)
     
     y=lambda_line*(1+z)**2/cosmo.H_z(z)
-    res=cosmo.D_co(z)**2*y*(As_rad)*B_nu
+    res=cosmo.D_co(z)**2*y*(Sa_rad)*B_nu
     return res*(p.m_to_mpc)**3
 
 
@@ -113,8 +110,8 @@ def V_pix(z, theta_min, delta_nu, line_name='CII'):
     delta_nu: the frequency resolution in GHz
     '''
       
-    theta_d=theta_min/60
-    theta_rad=theta_d*np.pi/180.0
+ 
+    theta_rad=theta_min*p.minute_to_radian
     
     nu=p.nu_rest(line_name)*p.Ghz_to_hz
     delta_nu*=p.Ghz_to_hz
@@ -126,22 +123,39 @@ def V_pix(z, theta_min, delta_nu, line_name='CII'):
     return res*(p.m_to_mpc)**3
 
 
-def NEI_to_NEFD(NEI, Ndet):
-    return NEI/np.sqrt(Ndet)
 
-def sigma_noise(theta_min, NEI, Ndet):
-    NEFD=NEI_to_NEFD(NEI, Ndet)
-    omega_beam=Omega_beam(theta_min)
-    return NEFD/omega_beam
+def sigma_noise(theta_min, NEI, experiment='ccatp'):
+    if(experiment=='ccatp'):
+        return NEI
+    
+    if(experiment=='other'):
+        omegab=Omega_beam(theta_min)
+        return NEI/omegab
+    
+        
+    #omega_beam=Omega_beam(theta_min)
+    return NEI*4*np.pi
     
     
-def P_noise(z, theta_min, delta_nu, NEI, tobs_total, Nspec_eff, S_a,  Ndet):
-    Pn=V_pix(z, theta_min, delta_nu)*sigma_noise(theta_min, NEI, Ndet)**2/(t_pix(theta_min, tobs_total, Nspec_eff, S_a))
+def P_noise(z, theta_min, delta_nu, NEI, tobs_total, Nspec_eff, S_a):
+    Pn=V_pix(z, theta_min, delta_nu)*sigma_noise(theta_min, NEI)**2/(t_pix(theta_min, tobs_total, Nspec_eff, S_a))
     return Pn
 
 
-def P_noise_ccatp():
-    return 2e9
+def P_noise_ccatp(nu='220'):
+    if(nu=='220'):
+        res=1.2e9
+        
+    if(nu=='280'):
+        res=2e9
+        
+    if(nu=='350'):
+        res=6.3e9
+        
+    if(nu=='410'):
+        res=2.3e10
+        
+    return res
 
 
 def N_modes(k,z, delta_k, A_s, B_nu, line_name='CII' ):
