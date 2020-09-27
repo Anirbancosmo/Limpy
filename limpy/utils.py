@@ -63,16 +63,11 @@ def freq_to_lambda(nu):
 
 
 
-def Omega_beam(theta_arcmin, factor=2.355):
+def Omega_beam(theta_arcmin):
     'return in arc-min^2 unit'
     
-    return 2*np.pi*(theta_arcmin/factor)**2
+    return 2*np.pi*(theta_arcmin/2.355)**2
 
-
-
-def Omegab(theta_arcmin, factor=2.355):
-    'return in arc-min^2 unit'
-    return 2*np.pi*(theta_arcmin/factor)**2
 
 
 
@@ -102,8 +97,10 @@ def V_surv(z, A_s, B_nu, line_name='CII'):
     res=cosmo.D_co(z)**2*y*(As_rad)*B_nu
     return res*(p.m_to_mpc)**3
 
-
-
+def nu_obs_to_z(nu_obs, line_name='CII'):
+    nu_rest_line=p.nu_rest(line_name=line_name)
+    z=(nu_obs/nu_rest_line)-1
+    return z
 
 def V_pix(z, theta_min, delta_nu, line_name='CII'):
     '''
