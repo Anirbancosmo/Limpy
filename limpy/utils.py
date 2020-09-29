@@ -30,7 +30,11 @@ def volume_cell(boxsize,ngrid):
     return clen**3   # in Mp
 
 def comoving_boxsize_to_degree(z, boxsize):
-    #boxsize in Mpc
+    """
+    Comoving box size to degree converter. 
+    return: boxsize in degree scale. 
+    """
+    
     mpc_to_m=p.mpc_to_m
     boxsize=boxsize*mpc_to_m
     dc=cosmo.D_co(z)
@@ -39,7 +43,11 @@ def comoving_boxsize_to_degree(z, boxsize):
     return theta_degree
 
 def physical_boxsize_to_degree(z, boxsize):
-    #boxsize in Mpc
+    """
+    Physical boxsize to degree converter. 
+    return: boxsize in degree scale. 
+    """
+    
     mpc_to_m=p.mpc_to_m
     boxsize=boxsize*mpc_to_m
     da=cosmo.D_angular(z)
@@ -49,7 +57,10 @@ def physical_boxsize_to_degree(z, boxsize):
 
 
 def degree_to_comoving_size(z, theta_degree):
-    #boxsize in Mpc
+    """
+    This function converts simulation box from degree unit to comoving Mpc.
+    """
+
     theta_rad=theta_degree*np.pi/180
     dc=cosmo.D_co(z)
     size=theta_rad*dc
@@ -58,24 +69,39 @@ def degree_to_comoving_size(z, theta_degree):
 
 
 def freq_to_lambda(nu):
+    "frequency to wavelength converter."
     wav=p.c_in_m/nu
     return wav
 
 
 
-def Omega_beam(theta_arcmin, factor=2.355):
+def Omega_beam(theta_min, factor=2.355):
+    """
+    Calculates the solid angle substended by a telescope beam. 
+    """
     
-    theta_rad=theta_arcmin*p.minute_to_radian
+    theta_rad=theta_min*p.minute_to_radian
     
     return 2*np.pi*(theta_rad/factor)**2
 
 
 
-def t_pix(theta_arcmin, tobs_total, Ndet_eff, S_area):
-    omega_beam=Omega_beam(theta_arcmin)
+def t_pix(theta_min, tobs_total, Ndet_eff, S_area):
+    """
+    Time per pixel.
+    
+    theta_min: the beam size in arc-min.
+    tobs_total: total observing time.
+    Ndet_eff: Effective number of detectors, for CCATp, Ndet_eff~20. 
+    S_area: Survey area in degree^2. 
+    
+    return: t_pix in second. 
+    
+    """
+    omega_beam=Omega_beam(theta_min)
     S_area_rad= S_area*(p.degree_to_radian)**2
     
-    tobs_total*=3600
+    tobs_total*=3600 # hours to seconds
     res=tobs_total*Ndet_eff*omega_beam/(S_area_rad)
     return res
 
@@ -83,10 +109,14 @@ def t_pix(theta_arcmin, tobs_total, Ndet_eff, S_area):
 
 def V_surv(z, S_area, B_nu, line_name='CII'):
     '''
+    Calculates the survey volume in MPc. 
+    
     z: redshift
     lambda_line: frequncy of line emission in micrometer
     A_s: Survey area in degree**2
     B_nu: Total frequency band width resolution in GHz
+    
+    return: Survey volume. 
     '''
     
     nu=p.nu_rest(line_name)*p.Ghz_to_hz
@@ -100,8 +130,18 @@ def V_surv(z, S_area, B_nu, line_name='CII'):
     return res*(p.m_to_mpc)**3
 
 def nu_obs_to_z(nu_obs, line_name='CII'):
+    """
+    This function evaluates the redshift of a particular line emission 
+    corresponding to the observed frequency. 
+    
+    return: redshift of line emission. 
+    """
+    
+    
     nu_rest_line=p.nu_rest(line_name=line_name)
-    z=(nu_obs/nu_rest_line)-1
+    assert(nu_obs<=nu_rest_line),"Observed frequency cannot be smaller than the %s rest frame frequency. In that case z will be negative, which is non physical" %(line_name)
+
+    z=(nu_rest_line/nu_obs)-1
     return z
 
 def V_pix(z, theta_min, delta_nu, line_name='CII'):
@@ -112,7 +152,6 @@ def V_pix(z, theta_min, delta_nu, line_name='CII'):
     delta_nu: the frequency resolution in GHz
     '''
       
- 
     theta_rad=theta_min*p.minute_to_radian
     
     nu=p.nu_rest(line_name)*p.Ghz_to_hz
@@ -127,6 +166,11 @@ def V_pix(z, theta_min, delta_nu, line_name='CII'):
 
 
 def sigma_noise(theta_min, NEI, experiment='ccatp'):
+    '''
+    noise per pixel. 
+    '''
+    
+    
     if(experiment=='ccatp'):
         return NEI
     
@@ -140,6 +184,18 @@ def sigma_noise(theta_min, NEI, experiment='ccatp'):
     
     
 def P_noise(z, theta_min, delta_nu, NEI, tobs_total, Nspec_eff, S_a):
+    """
+    White noise of an experiment.
+    z: redshift
+    theta_min: beam size in arc-min
+    delta_nu: frequency resolution in GHz. 
+    NEI: noise equivalence impedence. 
+    tobs_total: total observing time in hours. 
+    Nspec_eff: effective number of detectors. 
+    S_a: Survey area in degree^2. 
+    """
+    
+    
     Pn=V_pix(z, theta_min, delta_nu)*sigma_noise(theta_min, NEI)**2/(t_pix(theta_min, tobs_total, Nspec_eff, S_a))
     return Pn
 
