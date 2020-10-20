@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sun Sep 13 12:55:51 2020
-
 @author: anirbanroy
 """
 
 import inputs as inp
 import cosmos
 import numpy as np
-
+import lline as ll
 #parameters
 
 line_name=inp.line_params['line_name']
@@ -39,7 +38,95 @@ def line_scattered_params(line_name='CII'):
         a_std=inp.default_L_OIII_scatter_params['a_std']
         b_off=inp.default_L_OIII_scatter_params['b_off']
         b_std=inp.default_L_OIII_scatter_params['b_std']
+        '''
+    if(line_name=='C010'):
+    	a_off=inp.default_L_CO_1_0_scatter_params['a_off']
+        a_std=inp.default_L_CO_1_0_scatter_params['a_std']
+        b_off=inp.default_L_CO_1_0_scatter_params['b_off']
+        b_std=inp.default_L_CO_1_0_scatter_params['b_std']
+    if(line_name=='CO21'):
+    	a_off=inp.default_L_CO_2_1_scatter_params['a_off']
+        a_std=inp.default_L_CO_2_1_scatter_params['a_std']
+        b_off=inp.default_L_CO_2_1_scatter_params['b_off']
+        b_std=inp.default_L_CO_2_1_scatter_params['b_std']
+    if(line_name=='C032'):
+    	a_off=inp.default_L_CO_3_2_scatter_params['a_off']
+        a_std=inp.default_L_CO_3_2_scatter_params['a_std']
+        b_off=inp.default_L_CO_3_2_scatter_params['b_off']
+        b_std=inp.default_L_CO_3_2_scatter_params['b_std']
+    if(line_name=='C043'):
+    	a_off=inp.default_L_CO_4_3_scatter_params['a_off']
+        a_std=inp.default_L_CO_4_3_scatter_params['a_std']
+        b_off=inp.default_L_CO_4_3_scatter_params['b_off']
+        b_std=inp.default_L_CO_4_3_scatter_params['b_std']
+    if(line_name=='CO54'):
+    	a_off=inp.default_L_CO_5_4_scatter_params['a_off']
+        a_std=inp.default_L_CO_5_4_scatter_params['a_std']
+        b_off=inp.default_L_CO_5_4_scatter_params['b_off']
+        b_std=inp.default_L_CO_5_4_scatter_params['b_std']
+    if(line_name=='CO65'):
+    	a_off=inp.default_L_CO_6_5_scatter_params['a_off']
+        a_std=inp.default_L_CO_6_5_scatter_params['a_std']
+        b_off=inp.default_L_CO_6_5_scatter_params['b_off']
+        b_std=inp.default_L_CO_6_5_scatter_params['b_std']
+    if(line_name=='C76')
+    	a_off=inp.default_L_CO_7_6_scatter_params['a_off']
+        a_std=inp.default_L_CO_7_6_scatter_params['a_std']
+        b_off=inp.default_L_CO_7_6_scatter_params['b_off']
+        b_std=inp.default_L_CO_7_6_scatter_params['b_std']
+    if(line_name=='CO87'):
+    	a_off=inp.default_L_CO_8_7_scatter_params['a_off']
+        a_std=inp.default_L_CO_8_7_scatter_params['a_std']
+        b_off=inp.default_L_CO_8_7_scatter_params['b_off']
+        b_std=inp.default_L_CO_8_7_scatter_params['b_std']
+    if(line_name=='CO98'):
+    	a_off=inp.default_L_CO_9_8_scatter_params['a_off']
+        a_std=inp.default_L_CO_9_8_scatter_params['a_std']
+        b_off=inp.default_L_CO_9_8_scatter_params['b_off']
+        b_std=inp.default_L_CO_9_8_scatter_params['b_std']
+    if(line_name=='CO109'):
+    	a_off=inp.default_L_CO_10_9_scatter_params['a_off']
+        a_std=inp.default_L_CO_10_9_scatter_params['a_std']
+        b_off=inp.default_L_CO_10_9_scatter_params['b_off']
+        b_std=inp.default_L_CO_10_9_scatter_params['b_std']
+    if(line_name=='CO1110')
+    	a_off=inp.default_L_CO_11_10_scatter_params['a_off']
+        a_std=inp.default_L_CO_11_10_scatter_params['a_std']
+        b_off=inp.default_L_CO_11_10_scatter_params['b_off']
+        b_std=inp.default_L_CO_11_10_scatter_params['b_std']
+        '''
         
+    if(line_name[0:2]=='CO'):
+        line_name_len=len(line_name)
+        if(line_name_len==4):
+        	a_off_inp = "inp.default_L_CO_ " + line_name[0:3] + "_" + line_name[0:4] + "_scatter_params['a_off']"
+        	a_std_inp = "inp.default_L_CO_ " + line_name[0:3] + "_" + line_name[0:4] + "_scatter_params['a_std']"
+        	b_off_inp = "inp.default_L_CO_ " + line_name[0:3] + "_" + line_name[0:4] + "_scatter_params['b_off']"
+        	b_std_inp = "inp.default_L_CO_ " + line_name[0:3] + "_" + line_name[0:4] + "_scatter_params['b_std']"
+        	a_off = a_off_inp
+        	a_std = a_std_inp
+        	b_off = b_off_inp
+        	b_std = b_std_inp
+        if(line_name_len==5):
+            a_off_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + "_scatter_params['a_off']"
+            a_std_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + "_scatter_params['a_std']"
+            b_off_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + "_scatter_params['b_off']"
+            b_std_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + "_scatter_params['b_std']"
+            a_off = a_off_inp
+            a_std = a_std_inp
+            b_off = b_off_inp
+            b_std = b_std_inp
+        if(line_name_len==6):
+            a_off_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + line_name[0:6] + "_scatter_params['a_off']"
+            a_std_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + line_name[0:6] + "_scatter_params['a_std']"
+            b_off_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + line_name[0:6] + "_scatter_params['b_off']"
+            b_std_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + line_name[0:6] + "_scatter_params['b_std']"
+            a_off = a_off_inp
+            a_std = a_std_inp
+            b_off = b_off_inp
+            b_std = b_std_inp
+    		
+    
     return a_off, a_std,  b_off,  b_std
     
 
@@ -60,6 +147,27 @@ def nu_rest(line_name='CII'):
         nu=J_lader*115.27
         
     return nu
+
+# Calculating L_CO
+''' Using equations 1, 2, & 3 from Greve et. al to convert from IR luminosity to CO luminosity'''
+
+#nu = transition integer
+a_off, a_std, b_off, b_std = line_scattered_params(line_name)
+
+alfa = a_std + a_off
+beta = b_std + b_off
+
+def L_co(nu, alfa, beta):
+	L_ir_sun = ll.srf * 10**10
+	L_coprime = (L_ir_sun * 10 **(-beta)) ** (1/alfa)
+	L_co = 4.9 * 10e-5 * (nu / 115.27) ** 3 * L_coprime
+	return L_co
+
+
+
+
+
+
 
 
 

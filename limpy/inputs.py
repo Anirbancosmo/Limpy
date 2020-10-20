@@ -70,6 +70,16 @@ Different line rest frame frequencies and other parameters
 default_line_params={
     'nu_CII': 1900, #GHz
     'nu_CO10': 115.27 #GHz
+    #'nu_CO2_1': 2*115.27 #GHz
+    #'nu_CO3_2': 3*115.27 #GHz
+    #'nu_CO4_3': 4*115.27 #GHz
+    #'nu_CO5_4': 5*115.27 #GHz
+    #'nu_CO6_5': 6*115.27 #GHz
+    #'nu_CO7_6': 7*115.27 #GHz
+    #'nu_CO8_7': 8*115.27 #GHz
+    #'nu_CO9_8': 9*115.27 #GHz
+    #'nu_CO10_9': 10*115.27 #GHz
+    #'nu_CO11_10': 11*115.27 #GHz
     }
 
 
@@ -101,6 +111,86 @@ default_L_CII_chung_params={
         'c': 7.1,
         'd': 0.07,
         }
+
+# Parameters for SFR-LCO relation per transition from Greve et. al 2014
+
+default_L_CO_1_0_scatter_params={
+	   'a_off':0.99,
+       'a_std':0.04,
+       'b_off':1.90,
+       'b_std':0.40
+}
+
+default_L_CO_2_1_scatter_params={
+	   'a_off':1.03,
+       'a_std':0.09,
+       'b_off':1.60,
+       'b_std':0.90
+}
+
+default_L_CO_3_2_scatter_params={
+	   'a_off':0.99,
+       'a_std':0.04,
+       'b_off':2.10,
+       'b_std':0.04
+}
+
+default_L_CO_4_3_scatter_params={
+	   'a_off':1.08,
+       'a_std':0.09,
+       'b_off':1.20,
+       'b_std':0.90
+}
+
+default_L_CO_5_4_scatter_params={
+	   'a_off':0.97,
+       'a_std':0.06,
+       'b_off':2.50,
+       'b_std':0.60
+}
+
+default_L_CO_6_5_scatter_params={
+	   'a_off':0.93,
+       'a_std':0.05,
+       'b_off':3.10,
+       'b_std':0.50
+}
+
+default_L_CO_7_6_scatter_params={
+	   'a_off':0.87,
+       'a_std':0.05,
+       'b_off':3.90,
+       'b_std':0.40
+}
+
+default_L_CO_8_7_scatter_params={
+	   'a_off':0.66,
+       'a_std':0.07,
+       'b_off':5.80,
+       'b_std':0.60
+}
+
+default_L_CO_9_8_scatter_params={
+	   'a_off':0.82,
+       'a_std':0.07,
+       'b_off':4.60,
+       'b_std':0.60
+}
+
+default_L_CO_10_9_scatter_params={
+	   'a_off':0.66,
+       'a_std':0.07,
+       'b_off':6.10,
+       'b_std':0.60
+}
+
+default_L_CO_11_10_scatter_params={
+	   'a_off':0.57,
+       'a_std':0.09,
+       'b_off':6.80,
+       'b_std':0.70
+}
+
 
 
 # dummy values to extend the SFR-Mhalo relation when halomass goes below M_min
