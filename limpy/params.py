@@ -38,97 +38,98 @@ def line_scattered_params(line_name='CII'):
         a_std=inp.default_L_OIII_scatter_params['a_std']
         b_off=inp.default_L_OIII_scatter_params['b_off']
         b_std=inp.default_L_OIII_scatter_params['b_std']
-        '''
-    if(line_name=='C010'):
-    	a_off=inp.default_L_CO_1_0_scatter_params['a_off']
+    
+    if(line_name=='CO10'):
+        a_off=inp.default_L_CO_1_0_scatter_params['a_off']
         a_std=inp.default_L_CO_1_0_scatter_params['a_std']
         b_off=inp.default_L_CO_1_0_scatter_params['b_off']
         b_std=inp.default_L_CO_1_0_scatter_params['b_std']
     if(line_name=='CO21'):
-    	a_off=inp.default_L_CO_2_1_scatter_params['a_off']
+        a_off=inp.default_L_CO_2_1_scatter_params['a_off']
         a_std=inp.default_L_CO_2_1_scatter_params['a_std']
         b_off=inp.default_L_CO_2_1_scatter_params['b_off']
         b_std=inp.default_L_CO_2_1_scatter_params['b_std']
-    if(line_name=='C032'):
-    	a_off=inp.default_L_CO_3_2_scatter_params['a_off']
+    if(line_name=='CO32'):
+        a_off=inp.default_L_CO_3_2_scatter_params['a_off']
         a_std=inp.default_L_CO_3_2_scatter_params['a_std']
         b_off=inp.default_L_CO_3_2_scatter_params['b_off']
         b_std=inp.default_L_CO_3_2_scatter_params['b_std']
-    if(line_name=='C043'):
-    	a_off=inp.default_L_CO_4_3_scatter_params['a_off']
+    if(line_name=='CO43'):
+        a_off=inp.default_L_CO_4_3_scatter_params['a_off']
         a_std=inp.default_L_CO_4_3_scatter_params['a_std']
         b_off=inp.default_L_CO_4_3_scatter_params['b_off']
         b_std=inp.default_L_CO_4_3_scatter_params['b_std']
     if(line_name=='CO54'):
-    	a_off=inp.default_L_CO_5_4_scatter_params['a_off']
+        a_off=inp.default_L_CO_5_4_scatter_params['a_off']
         a_std=inp.default_L_CO_5_4_scatter_params['a_std']
         b_off=inp.default_L_CO_5_4_scatter_params['b_off']
         b_std=inp.default_L_CO_5_4_scatter_params['b_std']
     if(line_name=='CO65'):
-    	a_off=inp.default_L_CO_6_5_scatter_params['a_off']
+        a_off=inp.default_L_CO_6_5_scatter_params['a_off']
         a_std=inp.default_L_CO_6_5_scatter_params['a_std']
         b_off=inp.default_L_CO_6_5_scatter_params['b_off']
         b_std=inp.default_L_CO_6_5_scatter_params['b_std']
-    if(line_name=='C76')
-    	a_off=inp.default_L_CO_7_6_scatter_params['a_off']
+    if(line_name=='CO76'):
+        a_off=inp.default_L_CO_7_6_scatter_params['a_off']
         a_std=inp.default_L_CO_7_6_scatter_params['a_std']
         b_off=inp.default_L_CO_7_6_scatter_params['b_off']
         b_std=inp.default_L_CO_7_6_scatter_params['b_std']
     if(line_name=='CO87'):
-    	a_off=inp.default_L_CO_8_7_scatter_params['a_off']
+        a_off=inp.default_L_CO_8_7_scatter_params['a_off']
         a_std=inp.default_L_CO_8_7_scatter_params['a_std']
         b_off=inp.default_L_CO_8_7_scatter_params['b_off']
         b_std=inp.default_L_CO_8_7_scatter_params['b_std']
     if(line_name=='CO98'):
-    	a_off=inp.default_L_CO_9_8_scatter_params['a_off']
+        a_off=inp.default_L_CO_9_8_scatter_params['a_off']
         a_std=inp.default_L_CO_9_8_scatter_params['a_std']
         b_off=inp.default_L_CO_9_8_scatter_params['b_off']
         b_std=inp.default_L_CO_9_8_scatter_params['b_std']
     if(line_name=='CO109'):
-    	a_off=inp.default_L_CO_10_9_scatter_params['a_off']
+        a_off=inp.default_L_CO_10_9_scatter_params['a_off']
         a_std=inp.default_L_CO_10_9_scatter_params['a_std']
         b_off=inp.default_L_CO_10_9_scatter_params['b_off']
         b_std=inp.default_L_CO_10_9_scatter_params['b_std']
-    if(line_name=='CO1110')
-    	a_off=inp.default_L_CO_11_10_scatter_params['a_off']
+    if(line_name=='CO1110'):
+        a_off=inp.default_L_CO_11_10_scatter_params['a_off']
         a_std=inp.default_L_CO_11_10_scatter_params['a_std']
         b_off=inp.default_L_CO_11_10_scatter_params['b_off']
         b_std=inp.default_L_CO_11_10_scatter_params['b_std']
-        '''
         
-    if(line_name[0:2]=='CO'):
+        '''
+    if(line_name[0:2]=='CO'): #C034
         line_name_len=len(line_name)
         if(line_name_len==4):
-        	a_off_inp = "inp.default_L_CO_ " + line_name[0:3] + "_" + line_name[0:4] + "_scatter_params['a_off']"
-        	a_std_inp = "inp.default_L_CO_ " + line_name[0:3] + "_" + line_name[0:4] + "_scatter_params['a_std']"
-        	b_off_inp = "inp.default_L_CO_ " + line_name[0:3] + "_" + line_name[0:4] + "_scatter_params['b_off']"
-        	b_std_inp = "inp.default_L_CO_ " + line_name[0:3] + "_" + line_name[0:4] + "_scatter_params['b_std']"
-        	a_off = a_off_inp
-        	a_std = a_std_inp
-        	b_off = b_off_inp
-        	b_std = b_std_inp
+        	a_off_inp = "inp.default_L_CO_" + line_name[2:3] + "_" + line_name[3:4] + "_scatter_params['a_off']"
+        	a_std_inp = "inp.default_L_CO_" + line_name[2:3] + "_" + line_name[3:4] + "_scatter_params['a_std']"
+        	b_off_inp = "inp.default_L_CO_" + line_name[2:3] + "_" + line_name[3:4] + "_scatter_params['b_off']"
+        	b_std_inp = "inp.default_L_CO_" + line_name[2:3] + "_" + line_name[3:4] + "_scatter_params['b_std']"
+        	a_off = exec(a_off_inp)
+        	a_std = exec(a_std_inp)
+        	b_off = exec(b_off_inp)
+        	b_std = exec(b_std_inp)
         if(line_name_len==5):
-            a_off_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + "_scatter_params['a_off']"
-            a_std_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + "_scatter_params['a_std']"
-            b_off_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + "_scatter_params['b_off']"
-            b_std_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + "_scatter_params['b_std']"
-            a_off = a_off_inp
-            a_std = a_std_inp
-            b_off = b_off_inp
-            b_std = b_std_inp
+            a_off_inp = "inp.default_L_CO_" + line_name[2:3] + line_name[3:4] + "_" + line_name[4:5] + "_scatter_params['a_off']"
+            a_std_inp = "inp.default_L_CO_" + line_name[2:3] + line_name[3:4] + "_" + line_name[4:5] + "_scatter_params['a_std']"
+            b_off_inp = "inp.default_L_CO_" + line_name[2:3] + line_name[3:4] + "_" + line_name[4:5] + "_scatter_params['b_off']"
+            b_std_inp = "inp.default_L_CO_" + line_name[2:3] + line_name[3:4] + "_" + line_name[4:5] + "_scatter_params['b_std']"
+            a_off = exec(a_off_inp)
+            a_std = exec(a_std_inp)
+            b_off = exec(b_off_inp)
+            b_std = exec(b_std_inp)
         if(line_name_len==6):
-            a_off_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + line_name[0:6] + "_scatter_params['a_off']"
-            a_std_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + line_name[0:6] + "_scatter_params['a_std']"
-            b_off_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + line_name[0:6] + "_scatter_params['b_off']"
-            b_std_inp = "inp.default_L_CO_ " + line_name[0:3] + line_name[0:4] + "_" + line_name[0:5] + line_name[0:6] + "_scatter_params['b_std']"
-            a_off = a_off_inp
-            a_std = a_std_inp
-            b_off = b_off_inp
-            b_std = b_std_inp
-    		
+            a_off_inp = "inp.default_L_CO_" + line_name[2:3] + line_name[3:4] + "_" + line_name[4:5] + line_name[5:6] + "_scatter_params['a_off']"
+            a_std_inp = "inp.default_L_CO_" + line_name[2:3] + line_name[3:4] + "_" + line_name[4:5] + line_name[5:6] + "_scatter_params['a_std']"
+            b_off_inp = "inp.default_L_CO_" + line_name[2:3] + line_name[3:4] + "_" + line_name[4:5] + line_name[5:6] + "_scatter_params['b_off']"
+            b_std_inp = "inp.default_L_CO_" + line_name[2:3] + line_name[3:4] + "_" + line_name[4:5] + line_name[5:6] + "_scatter_params['b_std']"
+            a_off = exec(a_off_inp)
+            a_std = exec(a_std_inp)
+            b_off = exec(b_off_inp)
+            b_std = exec(b_std_inp)
+    		'''
     
     return a_off, a_std,  b_off,  b_std
-    
+
+
 
 
 def nu_rest(line_name='CII'):
