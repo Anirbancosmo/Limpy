@@ -20,13 +20,13 @@ pl.rcParams['axes.labelsize'] = '15'
 
 
 sfr_filepath='../data/'
-z,m,sfr=np.loadtxt(sfr_filepath+'sfr_beherozzi.dat', unpack=True)
+z,m,sfr_file=np.loadtxt(sfr_filepath+'sfr_beherozzi.dat', unpack=True)
 
 zlen=137 #manually checked 
 mlen=int(len(z)/zlen)
 zn=z[0:zlen]
 mhn=m.reshape(mlen,zlen)[:,0]
-sfrn=sfr.reshape(mlen,zlen)
+sfrn=sfr_file.reshape(mlen,zlen)
 sfr_interpolation=RectBivariateSpline(mhn, zn, sfrn)
 
 
@@ -79,124 +79,7 @@ def make_halocat(halo_file, filetype='npz',boxsize=160):
     halo_cm=halo_cm.flatten()
     return halomass, halo_cm
 
-'''
-def sfr_to_lcp_scatter(z, sfr):
-    
-    """
-    Calculates lumiosity of the CII lines from SFR assuming a 3\sigma Gussian scatter. The parameter values for the scattered relation
-    is mentioned in defalut_params modeule. 
-    
-    Input: z and sfr
-    
-    return: luminosity of CII lines in log scale 
-    """
-    
-    
-    if np.isscalar(sfr)==True:
-        sfr=np.atleast_1d(sfr)
-    
-    sfr_len=len(sfr)
-    log_L_cp=np.zeros(sfr_len)
-    for i in range(sfr_len):
-        a= np.random.normal(p.a_off,p.a_std)
-        b= np.random.normal(p.b_off,p.b_std)
-        log_L_cp[i]=(a+b*np.log10(sfr[i]))
-    return 10**log_L_cp
 
-   
-
-def sfr_to_lcp_nonscatter(z, sfr):
-    """
-    This function returns luminosity of CII lines in the unit of L_sun. This does not include the scatter, rather
-    this is the mean relation. 
-    
-    Values of fitting parameters are taken from Eq (1) from Chung et al. 2020 (arxiv: 1812.08135)
-    
-    We write two equations as
-    \alpha_z=a-b*z
-    \beta_z=c-d*z
-    values are mentioned 
-    """
-  
-  
-    if np.isscalar(sfr)==True:
-        sfr=np.atleast_1d(sfr)
-    
-    sfr_len=len(sfr)
-    log_L_cp=np.zeros(sfr_len)
-    
-    for i in range(sfr_len):
-        log_L_cp[i]=(p.a_off+p.b_off*np.log10(sfr[i]))
-    return 10**log_L_cp
-
-
-def sfr_to_lcp_nonscatter_chung(z, sfr):
-    """
-    This function returns luminosity of CII lines in the unit of L_sun. This does not include the scatter, rather
-    this is the mean relation. 
-    
-    Values of fitting parameters are taken from Eq (1) from Chung et al. 2020 (arxiv: 1812.08135)
-    
-    We write two equations as
-    \alpha_z=a-b*z
-    \beta_z=c-d*z
-    values are mentioned 
-    """
-    a,b,c,d=p.default_lcp_chung_params['a'],p.default_lcp_chung_params['b'],\
-    p.default_lcp_chung_params['c'],p.default_lcp_chung_params['d']
-    alpha_z= a-b*z
-    beta_z= c- d*z
-    log_lcp=alpha_z*np.log10(sfr)+beta_z
-    return 10**log_lcp
-
-
-def sfr_to_lot_scatter(z, sfr,a_off=p.default_lot_scatter_params['a_off'],a_std=p.default_lot_scatter_params['a_std'],
-                       b_off=p.default_lot_scatter_params['b_off'],b_std=p.default_lot_scatter_params['b_std']):
-    
-    """
-    Calculates lumiosity of the OIII lines from SFR assuming a 3\sigma Gussian scatter. The parameter values for the scattered relation
-    is mentioned in defalut_params module. 
-    
-    Input: z and sfr
-    
-    return: luminosity of OIII lines in log scale 
-    """
-    if np.isscalar(sfr)==True:
-        sfr=np.atleast_1d(sfr) ####Convert inputs to arrays with at least one dimension. Scalar inputs are converted to 1-dimensional arrays, whilst higher-dimensional inputs are preserved.
-    
-    sfr_len=len(sfr)
-    log_L_ot=np.zeros(sfr_len)
-    for i in range(sfr_len):
-        a= np.random.normal(a_off,a_std)
-        b= np.random.normal(b_off,b_std)
-        log_L_ot[i]=(a+b*np.log10(sfr[i]))
-    return 10**log_L_ot
-
-
-def sfr_to_lot_nonscatter(z, sfr,a_off=p.default_lot_scatter_params['a_off'],b_off=p.default_lot_scatter_params['b_off']):
-    """
-    This function returns luminosity of OIII lines in the unit of L_sun. This does not include the scatter, rather
-    this is the mean relation. 
-    
-    Values of fitting parameters are taken from .......
-    
-    We write two equations as
-    \alpha_z=a-b*z
-    \beta_z=c-d*z
-    values are mentioned 
-    """
-    a,b=a_off, b_off
-  
-    if np.isscalar(sfr)==True:
-        sfr=np.atleast_1d(sfr)
-    
-    sfr_len=len(sfr)
-    log_L_ot=np.zeros(sfr_len)
-    
-    for i in range(sfr_len):
-        log_L_ot[i]=(b*np.log10(sfr[i])+a)
-    return 10**log_L_ot
-'''
 
 def sfr_to_L_line(z,sfr, line_name='CII', use_scatter=True):
     """
@@ -207,9 +90,18 @@ def sfr_to_L_line(z,sfr, line_name='CII', use_scatter=True):
     
     return: luminosity of OIII lines in log scale 
     """
+    assert (line_name=='OIII' or line_name=='CII' or line_name[0:2]=='CO'), "Not a familiar line."
+    
     
     a_off, a_std, b_off, b_std=p.line_scattered_params(line_name)
     
+    
+    def L_co_log(sfr,alpha, beta):
+        nu_co_line=p.nu_rest(line_name)
+        L_ir_sun = sfr * 1e10
+        L_coprime = (L_ir_sun * 10 **(-beta)) ** (1/alpha)
+        L_co = 4.9e-5 * (nu_co_line/ 115.27) ** 3 * L_coprime
+        return np.log10(L_co)
     
     
     if np.isscalar(sfr)==True:
@@ -219,15 +111,30 @@ def sfr_to_L_line(z,sfr, line_name='CII', use_scatter=True):
     log_L_line=np.zeros(sfr_len)
     
     if(use_scatter==True):
-        for i in range(sfr_len):
-            a= np.random.normal(a_off,a_std)
-            b= np.random.normal(b_off,b_std)
-            log_L_line[i]=(a+b*np.log10(sfr[i]))
+        if(line_name=='CII' or line_name=='OIII'):
+            for i in range(sfr_len):
+                a= np.random.normal(a_off,a_std)
+                b= np.random.normal(b_off,b_std)
+                log_L_line[i]=(a+b*np.log10(sfr[i]))
+            
+        elif(line_name[0:2]=='CO'):
+            for i in range(sfr_len):
+                a= np.random.normal(a_off,a_std)
+                b= np.random.normal(b_off,b_std)
+             
+                log_L_line[i]=L_co_log(sfr[i],a, b)
+        
+                
         return 10**log_L_line
     
     if(use_scatter==False):
         for i in range(sfr_len):
-            log_L_line[i]=(a_off+b_off*np.log10(sfr[i]))
+            if(line_name=='CII' or line_name=='OIII'):
+                log_L_line[i]=(a_off+b_off*np.log10(sfr[i]))
+                
+            elif(line_name[0:2]=='CO'):
+                log_L_line[i]=L_co_log(sfr[i],a_off, b_off)  
+            
         return 10**log_L_line
         
 

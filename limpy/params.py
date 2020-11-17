@@ -149,26 +149,27 @@ def nu_rest(line_name='CII'):
         
     return nu
 
+
 # Calculating L_CO
 ''' Using equations 1, 2, & 3 from Greve et. al to convert from IR luminosity to CO luminosity'''
 
 #nu = transition integer
-a_off, a_std, b_off, b_std = line_scattered_params(line_name)
+#a_off, a_std, b_off, b_std = line_scattered_params(line_name)
 
-alfa = a_std + a_off
-beta = b_std + b_off
+#alpha and beta are not related with a_off, a_std, b_off, b_std in this way. 
+
+#alfa = a_std + a_off
+#beta = b_std + b_off
+
+
+'''
 
 def L_co(nu, alfa, beta):
 	L_ir_sun = ll.srf * 10**10
 	L_coprime = (L_ir_sun * 10 **(-beta)) ** (1/alfa)
 	L_co = 4.9 * 10e-5 * (nu / 115.27) ** 3 * L_coprime
 	return L_co
-
-
-
-
-
-
+'''
 
 
 
