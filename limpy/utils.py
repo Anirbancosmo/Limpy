@@ -200,17 +200,17 @@ def P_noise(z, theta_min, delta_nu, NEI, tobs_total, Nspec_eff, S_a):
     return Pn
 
 
-def P_noise_ccatp(nu='220'):
-    if(nu=='220'):
+def P_noise_ccatp(nu=220):
+    if(nu==220):
         res=1.2e9
         
-    if(nu=='280'):
+    elif(nu==280):
         res=2e9
         
-    if(nu=='350'):
+    elif(nu==350):
         res=6.3e9
         
-    if(nu=='410'):
+    elif(nu==410):
         res=2.3e10
         
     return res

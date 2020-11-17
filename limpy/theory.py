@@ -295,9 +295,10 @@ def Pk_line(k,z, fduty=1.0,line_name='CII',label='total', pk_unit='temperature')
             res=I_nu_square*(b_line(z, line_name=line_name)**2*pk_lin)
         if(label=='shot'):
             res=I_nu_square*(P_shot(z, line_name=line_name))
+            res=res*np.ones(len(k))
 
-        d2k=k**3*res/2/np.pi**2# in (Jy/sr)^2 unit
-        return d2k
+        #d2k=k**3*res/2/np.pi**2# in (Jy/sr)^2 unit
+        return res
 
 
     if(pk_unit=='temperature' or pk_unit=='muk' ):
@@ -309,10 +310,11 @@ def Pk_line(k,z, fduty=1.0,line_name='CII',label='total', pk_unit='temperature')
             res=T_line_square*(b_line(z, line_name=line_name)**2*pk_lin)
         if(label=='shot'):
             res=T_line_square*(P_shot(z, line_name=line_name))
+            res=res*np.ones(len(k))
 
 
-        d2k=k**3*res/2/np.pi**2 #in K unit
-        return d2k 
+        #d2k=k**3*res/2/np.pi**2 #in K unit
+        return res
 
 
 def window_gauss(z,z_mean, deltaz):
@@ -325,8 +327,8 @@ def Cl_line(ell, z, deltaz, fduty=1.0,line_name='CII',label='total', pk_unit='te
         
         kp=ell/p.cosmo.D_co(z)/p.m_to_mpc
         
-        dk=Pk_line(kp,z, fduty=fduty,line_name=line_name,label=label, pk_unit=pk_unit)
-        pk=dk*2*np.pi**2/kp**3
+        pk=Pk_line(kp,z, fduty=fduty,line_name=line_name,label=label, pk_unit=pk_unit)
+        #pk=dk*2*np.pi**2/kp**3
         
         zint=np.logspace(np.log10(z-deltaz),np.log10(z+deltaz), num=50)
         
