@@ -12,6 +12,8 @@ from astropy.modeling.models import Gaussian2D
 from scipy.interpolate import RectBivariateSpline
 import matplotlib.colors as colors
 
+from plotsettings import *
+
 import matplotlib as pl
 pl.rcParams['xtick.labelsize'] = '10'
 pl.rcParams['ytick.labelsize'] = '10'
@@ -20,13 +22,13 @@ pl.rcParams['axes.labelsize'] = '15'
 
 
 sfr_filepath='../data/'
-z,m,sfr=np.loadtxt(sfr_filepath+'sfr_beherozzi.dat', unpack=True)
+z,m,sfr_file=np.loadtxt(sfr_filepath+'sfr_beherozzi.dat', unpack=True)
 
 zlen=137 #manually checked 
 mlen=int(len(z)/zlen)
 zn=z[0:zlen]
 mhn=m.reshape(mlen,zlen)[:,0]
-sfrn=sfr.reshape(mlen,zlen)
+sfrn=sfr_file.reshape(mlen,zlen)
 sfr_interpolation=RectBivariateSpline(mhn, zn, sfrn)
 
 
@@ -79,124 +81,7 @@ def make_halocat(halo_file, filetype='npz',boxsize=160):
     halo_cm=halo_cm.flatten()
     return halomass, halo_cm
 
-'''
-def sfr_to_lcp_scatter(z, sfr):
-    
-    """
-    Calculates lumiosity of the CII lines from SFR assuming a 3\sigma Gussian scatter. The parameter values for the scattered relation
-    is mentioned in defalut_params modeule. 
-    
-    Input: z and sfr
-    
-    return: luminosity of CII lines in log scale 
-    """
-    
-    
-    if np.isscalar(sfr)==True:
-        sfr=np.atleast_1d(sfr)
-    
-    sfr_len=len(sfr)
-    log_L_cp=np.zeros(sfr_len)
-    for i in range(sfr_len):
-        a= np.random.normal(p.a_off,p.a_std)
-        b= np.random.normal(p.b_off,p.b_std)
-        log_L_cp[i]=(a+b*np.log10(sfr[i]))
-    return 10**log_L_cp
 
-   
-
-def sfr_to_lcp_nonscatter(z, sfr):
-    """
-    This function returns luminosity of CII lines in the unit of L_sun. This does not include the scatter, rather
-    this is the mean relation. 
-    
-    Values of fitting parameters are taken from Eq (1) from Chung et al. 2020 (arxiv: 1812.08135)
-    
-    We write two equations as
-    \alpha_z=a-b*z
-    \beta_z=c-d*z
-    values are mentioned 
-    """
-  
-  
-    if np.isscalar(sfr)==True:
-        sfr=np.atleast_1d(sfr)
-    
-    sfr_len=len(sfr)
-    log_L_cp=np.zeros(sfr_len)
-    
-    for i in range(sfr_len):
-        log_L_cp[i]=(p.a_off+p.b_off*np.log10(sfr[i]))
-    return 10**log_L_cp
-
-
-def sfr_to_lcp_nonscatter_chung(z, sfr):
-    """
-    This function returns luminosity of CII lines in the unit of L_sun. This does not include the scatter, rather
-    this is the mean relation. 
-    
-    Values of fitting parameters are taken from Eq (1) from Chung et al. 2020 (arxiv: 1812.08135)
-    
-    We write two equations as
-    \alpha_z=a-b*z
-    \beta_z=c-d*z
-    values are mentioned 
-    """
-    a,b,c,d=p.default_lcp_chung_params['a'],p.default_lcp_chung_params['b'],\
-    p.default_lcp_chung_params['c'],p.default_lcp_chung_params['d']
-    alpha_z= a-b*z
-    beta_z= c- d*z
-    log_lcp=alpha_z*np.log10(sfr)+beta_z
-    return 10**log_lcp
-
-
-def sfr_to_lot_scatter(z, sfr,a_off=p.default_lot_scatter_params['a_off'],a_std=p.default_lot_scatter_params['a_std'],
-                       b_off=p.default_lot_scatter_params['b_off'],b_std=p.default_lot_scatter_params['b_std']):
-    
-    """
-    Calculates lumiosity of the OIII lines from SFR assuming a 3\sigma Gussian scatter. The parameter values for the scattered relation
-    is mentioned in defalut_params module. 
-    
-    Input: z and sfr
-    
-    return: luminosity of OIII lines in log scale 
-    """
-    if np.isscalar(sfr)==True:
-        sfr=np.atleast_1d(sfr) ####Convert inputs to arrays with at least one dimension. Scalar inputs are converted to 1-dimensional arrays, whilst higher-dimensional inputs are preserved.
-    
-    sfr_len=len(sfr)
-    log_L_ot=np.zeros(sfr_len)
-    for i in range(sfr_len):
-        a= np.random.normal(a_off,a_std)
-        b= np.random.normal(b_off,b_std)
-        log_L_ot[i]=(a+b*np.log10(sfr[i]))
-    return 10**log_L_ot
-
-
-def sfr_to_lot_nonscatter(z, sfr,a_off=p.default_lot_scatter_params['a_off'],b_off=p.default_lot_scatter_params['b_off']):
-    """
-    This function returns luminosity of OIII lines in the unit of L_sun. This does not include the scatter, rather
-    this is the mean relation. 
-    
-    Values of fitting parameters are taken from .......
-    
-    We write two equations as
-    \alpha_z=a-b*z
-    \beta_z=c-d*z
-    values are mentioned 
-    """
-    a,b=a_off, b_off
-  
-    if np.isscalar(sfr)==True:
-        sfr=np.atleast_1d(sfr)
-    
-    sfr_len=len(sfr)
-    log_L_ot=np.zeros(sfr_len)
-    
-    for i in range(sfr_len):
-        log_L_ot[i]=(b*np.log10(sfr[i])+a)
-    return 10**log_L_ot
-'''
 
 def sfr_to_L_line(z,sfr, line_name='CII', use_scatter=True):
     """
@@ -207,9 +92,18 @@ def sfr_to_L_line(z,sfr, line_name='CII', use_scatter=True):
     
     return: luminosity of OIII lines in log scale 
     """
+    assert (line_name=='OIII' or line_name=='CII' or line_name[0:2]=='CO'), "Not a familiar line."
+    
     
     a_off, a_std, b_off, b_std=p.line_scattered_params(line_name)
     
+    
+    def L_co_log(sfr,alpha, beta):
+        nu_co_line=p.nu_rest(line_name)
+        L_ir_sun = sfr * 1e10
+        L_coprime = (L_ir_sun * 10 **(-beta)) ** (1/alpha)
+        L_co = 4.9e-5 * (nu_co_line/ 115.27) ** 3 * L_coprime
+        return np.log10(L_co)
     
     
     if np.isscalar(sfr)==True:
@@ -219,15 +113,30 @@ def sfr_to_L_line(z,sfr, line_name='CII', use_scatter=True):
     log_L_line=np.zeros(sfr_len)
     
     if(use_scatter==True):
-        for i in range(sfr_len):
-            a= np.random.normal(a_off,a_std)
-            b= np.random.normal(b_off,b_std)
-            log_L_line[i]=(a+b*np.log10(sfr[i]))
+        if(line_name=='CII' or line_name=='OIII'):
+            for i in range(sfr_len):
+                a= np.random.normal(a_off,a_std)
+                b= np.random.normal(b_off,b_std)
+                log_L_line[i]=(a+b*np.log10(sfr[i]))
+            
+        elif(line_name[0:2]=='CO'):
+            for i in range(sfr_len):
+                a= np.random.normal(a_off,a_std)
+                b= np.random.normal(b_off,b_std)
+             
+                log_L_line[i]=L_co_log(sfr[i],a, b)
+        
+                
         return 10**log_L_line
     
     if(use_scatter==False):
         for i in range(sfr_len):
-            log_L_line[i]=(a_off+b_off*np.log10(sfr[i]))
+            if(line_name=='CII' or line_name=='OIII'):
+                log_L_line[i]=(a_off+b_off*np.log10(sfr[i]))
+                
+            elif(line_name[0:2]=='CO'):
+                log_L_line[i]=L_co_log(sfr[i],a_off, b_off)  
+            
         return 10**log_L_line
         
 
@@ -445,7 +354,7 @@ def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift, line_name=
 
     
 def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,line_name='CII', halocat_file_type='dat',halo_cutoff_mass=1e11, use_scatter=True,
-               density_plot=False, halo_overplot=False, plot_lines=False, unit='mpc'):
+               density_plot=False, halo_overplot=False, plot_lines=False, unit='mpc', line_cb_min=1e2, line_cb_max=1e10):
     
     
 
@@ -691,7 +600,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         r=(np.log10(lum)/np.log10(lum.max()))**6
      
         
-        s1=plt.scatter(xl, yl, marker='o', c=lum, s=70*r,cmap='afmhot',  vmin=1e4, vmax=1e10, norm=colors.LogNorm(), alpha=0.9)
+        s1=plt.scatter(xl, yl, marker='o', c=lum, s=70*r,cmap='afmhot',  vmin=line_cb_min, vmax=line_cb_max, norm=colors.LogNorm(), alpha=0.9)
         
     
         if(unit=='mpc'):
@@ -767,10 +676,12 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     x_arc=xl*dtm
     y_arc=yl*dtm
     
-    #sx=2e-2*np.log10(lum)**2 #keep it 0.03*(lum**3) 
-    #sy=2e-2*np.log10(lum)**2 #keep it 0.03*(lum**3) 
-    sx=np.zeros(len(lum))
-    sy=np.zeros(len(lum))
+    sx=2e-3*np.log10(lum)**3 #keep it 0.03*(lum**3) 
+    sy=2e-3*np.log10(lum)**3 #keep it 0.03*(lum**3) 
+    
+    
+    #sx=np.zeros(len(lum))
+    #sy=np.zeros(len(lum))
    
     beam_std=theta/(np.sqrt(8*np.log(2.0)))
     gauss_kernel = Gaussian2DKernel(beam_std)
@@ -804,11 +715,12 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
         if(add_noise==False and random_noise_parcentage==None):
             final_conv=gauss_data+final_conv
         if(add_noise==True):
-            final_conv=gauss_data+final_conv+random_noise_parcentage *luminosity_max* (np.random.rand(flen, flen)-0.5)
+            #final_conv=gauss_data+final_conv+random_noise_parcentage *luminosity_max* (np.random.rand(flen, flen)-0.5)
+            final_conv=gauss_data+final_conv+random_noise_parcentage * (np.random.rand(flen, flen)-0.5)
         final_conv=convolve(final_conv,gauss_kernel)
         
    
-    fig, ax = plt.subplots(figsize=(8,8),dpi=70)
+    fig, ax = plt.subplots(figsize=(7,7),dpi=100)
  
     res=ax.imshow(final_conv, cmap='gist_heat', interpolation='gaussian',origin='lower', rasterized=True, alpha=0.9, vmin=1e3, vmax=1e9, norm=colors.LogNorm())
     
@@ -817,7 +729,7 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
         x_tick=(utils.comoving_boxsize_to_degree(halo_redshift, boxsize))
         cell_size=x_tick/ngrid
         ticks=np.linspace(0, x_tick,num=tick_num)
-        labels = [str("{:.1e}".format(xx)) for xx in ticks]
+        labels = [str("{:.1f}".format(xx)) for xx in ticks]
         locs = [xx/cell_size for xx in ticks]
         plt.xlabel(r'$\Theta\,(\mathrm{degree})$')
         plt.ylabel(r'$\Theta\,(\mathrm{degree})$')
@@ -837,11 +749,11 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     plt.xticks(locs, labels)
     plt.yticks(locs, labels)
     
-    title = '$z={:g}$'.format(halo_redshift)
-    plt.title(title, fontsize=18)
+    #title = '$z={:g}$'.format(halo_redshift)
+    #plt.title(title, fontsize=18)
     
     divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", "3%", pad="3%")
+    cax = divider.append_axes("right", "5%", pad="3%")
     cb = plt.colorbar(res, cax=cax)
     cb.set_label(r'$L$', labelpad=20)
     cb.solids.set_edgecolor("face")
