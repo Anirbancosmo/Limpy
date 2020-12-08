@@ -12,6 +12,8 @@ from astropy.modeling.models import Gaussian2D
 from scipy.interpolate import RectBivariateSpline
 import matplotlib.colors as colors
 
+from plotsettings import *
+
 import matplotlib as pl
 pl.rcParams['xtick.labelsize'] = '10'
 pl.rcParams['ytick.labelsize'] = '10'
@@ -352,7 +354,7 @@ def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift, line_name=
 
     
 def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,line_name='CII', halocat_file_type='dat',halo_cutoff_mass=1e11, use_scatter=True,
-               density_plot=False, halo_overplot=False, plot_lines=False, unit='mpc'):
+               density_plot=False, halo_overplot=False, plot_lines=False, unit='mpc', line_cb_min=1e2, line_cb_max=1e10):
     
     
 
@@ -598,7 +600,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         r=(np.log10(lum)/np.log10(lum.max()))**6
      
         
-        s1=plt.scatter(xl, yl, marker='o', c=lum, s=70*r,cmap='afmhot',  vmin=1e4, vmax=1e10, norm=colors.LogNorm(), alpha=0.9)
+        s1=plt.scatter(xl, yl, marker='o', c=lum, s=70*r,cmap='afmhot',  vmin=line_cb_min, vmax=line_cb_max, norm=colors.LogNorm(), alpha=0.9)
         
     
         if(unit=='mpc'):
@@ -674,10 +676,12 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     x_arc=xl*dtm
     y_arc=yl*dtm
     
-    #sx=2e-2*np.log10(lum)**2 #keep it 0.03*(lum**3) 
-    #sy=2e-2*np.log10(lum)**2 #keep it 0.03*(lum**3) 
-    sx=np.zeros(len(lum))
-    sy=np.zeros(len(lum))
+    sx=2e-3*np.log10(lum)**3 #keep it 0.03*(lum**3) 
+    sy=2e-3*np.log10(lum)**3 #keep it 0.03*(lum**3) 
+    
+    
+    #sx=np.zeros(len(lum))
+    #sy=np.zeros(len(lum))
    
     beam_std=theta/(np.sqrt(8*np.log(2.0)))
     gauss_kernel = Gaussian2DKernel(beam_std)
@@ -711,11 +715,12 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
         if(add_noise==False and random_noise_parcentage==None):
             final_conv=gauss_data+final_conv
         if(add_noise==True):
-            final_conv=gauss_data+final_conv+random_noise_parcentage *luminosity_max* (np.random.rand(flen, flen)-0.5)
+            #final_conv=gauss_data+final_conv+random_noise_parcentage *luminosity_max* (np.random.rand(flen, flen)-0.5)
+            final_conv=gauss_data+final_conv+random_noise_parcentage * (np.random.rand(flen, flen)-0.5)
         final_conv=convolve(final_conv,gauss_kernel)
         
    
-    fig, ax = plt.subplots(figsize=(8,8),dpi=70)
+    fig, ax = plt.subplots(figsize=(7,7),dpi=100)
  
     res=ax.imshow(final_conv, cmap='gist_heat', interpolation='gaussian',origin='lower', rasterized=True, alpha=0.9, vmin=1e3, vmax=1e9, norm=colors.LogNorm())
     
@@ -724,7 +729,7 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
         x_tick=(utils.comoving_boxsize_to_degree(halo_redshift, boxsize))
         cell_size=x_tick/ngrid
         ticks=np.linspace(0, x_tick,num=tick_num)
-        labels = [str("{:.1e}".format(xx)) for xx in ticks]
+        labels = [str("{:.1f}".format(xx)) for xx in ticks]
         locs = [xx/cell_size for xx in ticks]
         plt.xlabel(r'$\Theta\,(\mathrm{degree})$')
         plt.ylabel(r'$\Theta\,(\mathrm{degree})$')
@@ -744,11 +749,11 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     plt.xticks(locs, labels)
     plt.yticks(locs, labels)
     
-    title = '$z={:g}$'.format(halo_redshift)
-    plt.title(title, fontsize=18)
+    #title = '$z={:g}$'.format(halo_redshift)
+    #plt.title(title, fontsize=18)
     
     divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", "3%", pad="3%")
+    cax = divider.append_axes("right", "5%", pad="3%")
     cb = plt.colorbar(res, cax=cax)
     cb.set_label(r'$L$', labelpad=20)
     cb.solids.set_edgecolor("face")
