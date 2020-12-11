@@ -9,7 +9,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import utils  
 from astropy.convolution import convolve, Gaussian2DKernel
 from astropy.modeling.models import Gaussian2D
-from scipy.interpolate import RectBivariateSpline
+from scipy.interpolate import RectBivariateSpline, interp2d
 import matplotlib.colors as colors
 
 from plotsettings import *
@@ -29,7 +29,9 @@ mlen=int(len(z)/zlen)
 zn=z[0:zlen]
 mhn=m.reshape(mlen,zlen)[:,0]
 sfrn=sfr_file.reshape(mlen,zlen)
-sfr_interpolation=RectBivariateSpline(mhn, zn, sfrn)
+#sfr_interpolation=RectBivariateSpline(mhn, zn, sfrn)
+
+sfr_interpolation=RectBivariateSpline(np.log10(mhn), zn, np.log10(sfrn))
 
 
 def make_hlist_ascii_to_npz(hlist_path_ascii, filename=None):
@@ -145,7 +147,9 @@ def mhalo_to_sfr(m,z):
     Returns the SFR history for discrete values of halo mass.
     """
     
-    res=sfr_interpolation(m,z) 
+    #res=sfr_interpolation(m,z) 
+    res=sfr_interpolation(np.log10(m),z) 
+    res=10**(res)
     
     res=np.where(res<1e-4, p.lcp_low, res)
     return res.flatten()
