@@ -10,6 +10,9 @@ import numpy as np
 import cosmos 
 import params as p
 
+
+from multiprocessing import cpu_count
+THREADS = cpu_count()
 cosmo=cosmos.cosmo()
 
 def volume_box(boxsize):
@@ -83,6 +86,75 @@ def Omega_beam(theta_min, factor=2.355):
     theta_rad=theta_min*p.minute_to_radian
     
     return 2*np.pi*(theta_rad/factor)**2
+
+
+
+def slice(datacube, ngrid, nproj, option='C'):
+    """
+    Produces a slice from a 3D data cube for plotting. `option' controls
+    whether data cube has C or Fortran ordering.
+
+    """
+    iarr = np.zeros(ngrid*ngrid)
+    jarr = np.zeros(ngrid*ngrid)
+    valarr = np.zeros(ngrid*ngrid)
+
+    counter = 0
+    for i in range(ngrid):
+        for j in range(ngrid):
+            iarr[counter] = i
+            jarr[counter] = j
+            valarr[counter] = 0.0
+            for k in range(nproj):
+                if option=='F':
+                    valarr[counter] += datacube[i+ngrid*(j+ngrid*k)]
+                elif option=='C':
+                    valarr[counter] += datacube[k+ngrid*(j+ngrid*i)]
+            counter += 1 
+
+    return iarr, jarr, valarr
+
+
+def freq_2D(boxsize, ngrid):
+    kf = 2.0*np.pi/boxsize
+    kn = np.pi/(boxsize/mgrid)
+    
+    return kf, kn
+
+
+
+
+def slice_2d(datacube, ngrid, nproj, operation='sum'):
+    """
+    Produces a slice from a 3D data cube for power spectra calculation.
+    
+    nproj: number of cells to project.
+    
+    operation suggestion either to "sum" or "mean" over projection cells.
+    """
+    
+    ndim=np.ndim(datacube)
+    print("The dimension of data", ndim)
+    
+    if(ndim==1):
+        data_cut=datacube.reshape(ngrid, ngrid, ngrid)[:, :, :nproj]
+        
+    
+    elif(ndim==3):
+        data_cut=datacube[:, :, :nproj]
+        
+    else:
+        raise ValueError("Provide the data either in 1D or 3D data cube (in case of projection)")
+        
+    if operation=='sum':
+    # Project number of cells along the third axis. 
+        data_2d = data_cut.sum(axis=2)
+    if operation=='mean':
+        data_2d = data_cut.mean(axis=2)
+        
+    return data_2d
+        
+    
 
 
 
@@ -181,7 +253,16 @@ def sigma_noise(theta_min, NEI, experiment='ccatp'):
         
     #omega_beam=Omega_beam(theta_min)
     return NEI*4*np.pi
+  
     
+def read_grid(fname, ngrid=None):
+    with open(fname, 'rb') as f:
+            grid = np.fromfile(f, dtype='f', count=-1)
+    
+    if ngrid is not None:
+        return grid.reshape(ngrid, ngrid, ngrid)
+    else:       
+        return grid
     
 def P_noise(z, theta_min, delta_nu, NEI, tobs_total, Nspec_eff, S_a):
     """
@@ -221,5 +302,178 @@ def N_modes(k,z, delta_k, A_s, B_nu, line_name='CII' ):
     res=2*np.pi*k**2*delta_k*Vs/(2*np.pi)**3
     return res
     
+
+
+
+from numpy.fft import fftn, ifftn, ifftshift, fftshift, fftfreq
+
+
+
+def magnitude_grid(x, dim=None):
+    if dim is not None:
+        return np.sqrt(np.sum(np.meshgrid(*([x ** 2] * dim)), axis=0))
+    else:
+        return np.sqrt(np.sum(np.meshgrid(*([X ** 2 for X in x])), axis=0))
+
+def myfft(x_grid, boxlength, ngrid, ndim=2, a = 0, b=2*np.pi):
+    
+    #volume of the box
+    #V = boxlength**ndim
+    
+    # Volume of each cells
+    cellsize=boxlength/ngrid
+    V_cell=cellsize**ndim
+    
+    print("V_cell", V_cell)
+    
+    #do fftn
+    fftn_res=fftn(x_grid, axes=[0,1])
+    
+    ft_res=V_cell * fftshift(fftn_res , axes=[0,1])* (np.abs(b) / (2 * np.pi) ** (1 - a)) ** (ndim/2)
+    
+    #left_edge=np.array([-boxlength/2.0,  --boxlength/2.0])
+    
+    #dx = np.array([float(l) / float(n) for l, n in zip(L, N)])
+    
+    frequency =fftshift(fftfreq(ngrid, d=(boxlength/ngrid)))* (2 * np.pi / b)
+    
+    k_grid=np.add.outer(frequency[0]**2, frequency[1] ** 2)
+    
+    return ft_res, np.array([frequency, frequency]), k_grid
+    
+
+
+def myifft(x_grid, boxlength, ngrid, ndim=2, a = 0, b=2*np.pi):
+    
+    boxlength_k=(2 * np.pi * ngrid)/(boxlength * b)
+    
+    #volume of the box in k space
+    V_k=boxlength_k**ndim
+    
+    print("V_cell", V_k)
+    
+    #do ifftn
+    
+    ifftn_res = V_k * ifftn(x_grid, axes=[0,1]) * (np.abs(b) / (2 * np.pi) ** (1 + a)) ** (ndim/2)
+    
+    ift_res=ifftshift(ifftn_res, axes=[0,1])
+    
+    #left_edge=np.array([-boxlength/2.0,  --boxlength/2.0])
+    
+    #dx = np.array([float(l) / float(n) for l, n in zip(L, N)])
+    
+    print( ift_res)
+    
+    frequency =fftshift(fftfreq(ngrid, d=(boxlength_k/ngrid)))* (2 * np.pi / b)
+    
+    k_grid=np.add.outer(frequency[0]**2, frequency[1] ** 2)
+    
+    return ift_res, np.array([frequency, frequency]), k_grid
+
+
+def powerspectra_2d(x_grid, boxlength, ngrid, project_length=None, a=1, b=1, ndim=2, volume_normalization=True, bins_num=None, y_grid=None):
+    
+    Vbox=boxlength**ndim
+    cellsize=boxlength/ngrid
+    
+    if project_length is not None:
+        nproj=project_length/cellsize
+    
+    if project_length is not None:
+        
+        if x_grid is not None:
+            g_xi = slice_2d(x_grid, ngrid, nproj)
+        
+        if y_grid is not None:
+            g_yi= slice_2d(y_grid, ngrid, nproj)
+            
+    if project_length is None:
+        if x_grid is not None:
+            g_xi = x_grid
+        
+        if y_grid is not None:
+            g_yi= y_grid
+        
+        #raise ValueError("Specify a projection length along the radial direction for 2D power spectrum calculation")
+    
+    
+    ft_x, fq, kgrid_x = myfft(g_xi, boxlength, ngrid, a=a, b=b)
+    
+    if y_grid is not None:
+        ft_y = myfft(g_yi, boxlength, ngrid, a=a, b=b)[0]
+    else: 
+        ft_y=ft_x
+    
+    print("my freq is", fq)
+        
+    
+    P = np.real(ft_x * np.conj(ft_y) / Vbox ** 2)
+            
+    print("my P is", P)
+    
+    if volume_normalization:
+        P*=Vbox
+
+    
+    
+    if len(fq) == len(P.shape):
+        print("Condition true")
+        # coords are a segmented list of dimensional co-ordinates
+        fq = magnitude_grid(fq)
+        
+        
+    
+    if bins_num is not None:
+        bins_num=bins_num 
+        
+    else:
+        N=[ngrid]*ndim
+        bins_num=bins = int(np.product(N[:ndim]) ** (1. / ndim) / 2.2)
+        
+    bins = np.linspace(fq.min(), fq.max(), (bins_num+1))
+    
+    
+    print("the first shape of bins", np.shape(bins))
+    
+    bin_index = np.digitize(fq.flatten(), bins)
+    
+    print("the first", np.shape(bin_index))
+    
+
+    
+    binweight=np.bincount(bin_index, minlength=len(bins)+1)[1:-1]
+    
+    
+    #return bin_indx, bins, sumweights
+    
+    # Do average over fields.
+    field=P
+    print("the field shape", field)
+    
+    print("data type of field is ", field.dtype.kind)
+    
+    print("the bin_index", bin_index)
+    
+    weights=np.real(field.flatten())
+    
+    print("the weight shape", np.shape(weights))
+    
+    real_part = np.bincount(bin_index, weights=np.real(field.flatten()), minlength=len(binweight)+2)[1:-1] / binweight
+    if(field.dtype.kind=='c'):
+        imaginary_part = 1j * np.bincount(bin_index, weights=np.imag(field.flatten()), minlength=len(binweight)+2)[1:-1] / binweight
+    else:
+        imaginary_part=0
+    
+    field_average= real_part + imaginary_part
+    
+    print("the weight shape", np.shape(weights))
+    
+    res = list(field_average)
+    
+    return bins[1:], res
+    
+
+
+
 
     
