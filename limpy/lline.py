@@ -34,57 +34,6 @@ sfrn=sfr_file.reshape(mlen,zlen)
 sfr_interpolation=RectBivariateSpline(np.log10(mhn), zn, np.log10(sfrn))
 
 
-def make_hlist_ascii_to_npz(hlist_path_ascii, filename=None):
-    """ 
-    Takes a hlist file in the form of Universemachine format and tranforms 
-    to a npz file with necessary quantities.
-    coumn 0: scale factor
-    coulumn 1: halo mass
-    column 2: x co-ordinate of halos
-    column 3: y co-ordinate of halos
-    column 4: z co-ordinate of halos
-    """
-    
-    # reads only scale factor, halomass,x,y and z from the ascii file used in Universe machine
-    data=np.loadtxt(hlist_path_ascii)  
-    
-    # save the file in npz format either in mentioned filename or in original ascii filename
-    if filename:
-        np.savez(filename,m=data[:,0],x=data[:,1],y=data[:,2],z=data[:,3])
-    else:
-        np.savez(hlist_path_ascii,m=data[:,0], x=data[:,1], y=data[:,2], z=data[:,3])
-    return
-    
-
-def make_halocat(halo_file, filetype='npz',boxsize=160):
-    """
-    reads the mass and co-ordinates of halos from a npz file.
-    
-    Input: halo file in npz format
-    
-    Returns: m and (x,y,z)
-    """
-    if filetype=='npz':
-        fn=np.load(halo_file)
-        #halomass and x,y,z are read in the following format
-        halomass, halo_x, halo_y, halo_z = fn['m'], fn['x'],fn['y'],fn['z']
-        
-    if filetype=='dat':
-        halomass, halo_x, halo_y, halo_z=np.loadtxt(halo_file,unpack=True)
-        halomass, halo_x, halo_y, halo_z = halomass, halo_x*boxsize, halo_y*boxsize, halo_z *boxsize
-        
-    
-    # stack the co-ordinates together
-    halo_cm=np.column_stack([halo_x,halo_y,halo_z])
-    del halo_x
-    del halo_y
-    del halo_z
-    
-    halo_cm=halo_cm.flatten()
-    return halomass, halo_cm
-
-
-
 def sfr_to_L_line(z,sfr, line_name='CII', use_scatter=True):
     """
     Calculates lumiosity of the OIII lines from SFR assuming a 3\sigma Gussian scatter. The parameter values for the scattered relation
@@ -258,7 +207,7 @@ def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,line_
     #low_mass_log=0.0
     cellsize = boxsize/ngrid
     
-    halomass, halo_cm=make_halocat(halocat_file,filetype='dat',boxsize=boxsize)
+    halomass, halo_cm=utils.make_halocat(halocat_file,filetype='dat',boxsize=boxsize)
     
     nhalo=len(halomass)
     # Overplot halos 
@@ -313,7 +262,7 @@ def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift, line_name=
     #low_mass_log=0.0
     cellsize = boxsize/ngrid
     
-    halomass, halo_cm=make_halocat(halocat_file,filetype=halocat_file_type,boxsize=boxsize)
+    halomass, halo_cm=utils.make_halocat(halocat_file,filetype=halocat_file_type,boxsize=boxsize)
     
     nhalo=len(halomass)
     # Overplot halos 
@@ -486,7 +435,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         
    
     
-        halomass, halo_cm=make_halocat(halocat_file,filetype='dat',boxsize=boxsize)
+        halomass, halo_cm=utils.make_halocat(halocat_file,filetype='dat',boxsize=boxsize)
         
         nhalo=len(halomass)
         # Overplot halos 
@@ -765,4 +714,58 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     
     plt.tight_layout()
     plt.savefig("luminsoty_beam.png")
+
+
+def calc_intensity_3d(boxsize, ngrid, halocat_file,halo_redshift, line_name='CII',halo_cutoff_mass=1e11, use_scatter=False,halocat_file_type='npz', unit='mpc'):
+    '''
+    Calculate luminosity for input parameters
+    '''
+  
+    #low_mass_log=0.0
+    cellsize = boxsize/ngrid
     
+    V_cell=(cellsize)**3
+    
+    
+    
+    halomass, halo_cm=utils.make_halocat(halocat_file,filetype=halocat_file_type,boxsize=boxsize)
+    
+    nhalo=len(halomass)
+    x_halos = halo_cm[range(0,nhalo*3,3)]
+    y_halos = halo_cm[range(1,nhalo*3,3)]
+    z_halos = halo_cm[range(2,nhalo*3,3)]
+    
+    
+    print('Minimum halo mass:', halomass.min())
+    print('Maximum halo mass:', halomass.max())
+   
+    #halomass_filter=halomass
+    #mh=halomass)
+    #logmh=np.array([int(logmh[key]) for key in range(nhalo)])
+
+        
+    mass_cut=halomass>= halo_cutoff_mass
+    halomass=halomass[mass_cut]
+    x_halos_cut= x_halos[mass_cut]
+    y_halos_cut= y_halos[mass_cut]
+    z_halos_cut= z_halos[mass_cut]
+    
+    halo_cm=np.concatenate([x_halos_cut,y_halos_cut,z_halos_cut])
+    
+    hcut_len=len(halomass)
+    lcp=np.zeros(hcut_len)
+    for i in range(hcut_len):
+        lcp[i]=mhalo_to_lline(halomass[i],halo_redshift,line_name=line_name, use_scatter=use_scatter)
+    
+    grid_lum=utils.grid(halo_cm, lcp, boxsize, ngrid, ndim=3)
+    
+    print("shape of grid_lum", np.shape(grid_lum))
+    
+    prefac=p.c_in_m/(4*np.pi*p.nu_rest(line_name=line_name)*p.Ghz_to_hz*p.cosmo.H_z(halo_redshift))
+    
+    print("shape of prefac", np.shape(prefac))
+    
+    grid_intensity= prefac*(grid_lum* p.Lsun/(V_cell*p.mpc_to_m**3))/p.jy_unit #transformed to jansky unit
+    
+    return grid_intensity
+

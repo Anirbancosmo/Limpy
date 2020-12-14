@@ -13,64 +13,43 @@ import numpy as np
 from powerbox import get_power
 from multiprocessing import cpu_count
 
+import lline as ll
 
-import powerbox as pbox
+
+import utils
 
 boxsize=80
-ndim=512
+halo_redshift=7.6
+nu_obs=220
+dnu=2.2
+line_name='CII'
+ndim_original=3
 
-pb = pbox.PowerBox(
-    N=ndim,                     # Number of grid-points in the box
-    dim=2,                     # 2D box
-    pk = lambda k: 0.1*k**-2., # The power-spectrum
-    boxlength = boxsize,           # Size of the box (sets the units of k in pk)
-    seed = 1010                # Set a seed to ensure the box looks the same every time (optional)
-)
-
-#plt.imshow(pb.delta_x(),extent=(0,1,0,1))
-#plt.colorbar()
-#plt.show()
+mmin=1e10
+ngrid=512
 
 
-pb = pbox.PowerBox(
-    N=ndim,                     # Number of grid-points in the box
-    dim=2,                     # 2D box
-    pk = lambda k: 0.1*k**-2., # The power-spectrum
-    boxlength = boxsize,           # Size of the box (sets the units of k in pk)
-    seed = 1010,               # Set a seed to ensure the box looks the same every time (optional)
-    ensure_physical=True       # ** Ensure the delta_x is a physically valid over-density **
-)
+halo_file='/Users/anirbanroy/Documents/21cmFAST/Output_files/Halo_lists/halos_z7.60_512_80Mpc'
 
+proj_L=utils.length_projection(nu_obs=nu_obs, dnu=dnu, line_name=line_name)
 
-#plt.imshow(pb.delta_x(),extent=(0,1,0,1))
-#plt.colorbar()
-#plt.show()
+hm, cm=utils.make_halocat(halo_file, filetype='dat',boxsize=boxsize)
 
+#lum_wright=
 
-lnpb = pbox.LogNormalPowerBox(
-    N=ndim,                     # Number of grid-points in the box
-    dim=2,                     # 2D box
-    pk = lambda k: 0.1*k**-2., # The power-spectrum
-    boxlength = boxsize,           # Size of the box (sets the units of k in pk)
-    seed = 1010                # Use the same seed as our powerbox
-)
-#plt.imshow(lnpb.delta_x(),extent=(0,1,0,1))
-#plt.colorbar()
-#plt.show()
+mass_cut=hm >= mmin
+halomass_cut=hm[mass_cut]
 
+print("Calculating line luminosities")
+lum_line=np.zeros(len(halomass_cut))
+for i in range(len(halomass_cut)):
+    lum_line[i]=ll.mhalo_to_lline(halomass_cut[i],halo_redshift,line_name=line_name)
 
-# Create a discrete sample using the PowerBox instance.
-samples = pb.create_discrete_sample(nbar=50000,      # nbar specifies the number density
-                                    min_at_zero=True  # by default the samples are centred at 0. This shifts them to be positive.
-                                   )
-ln_samples = lnpb.create_discrete_sample(nbar=50000, min_at_zero=True)
+print("making the luminsoity grid")
+gi=ll.calc_intensity_3d(boxsize, ngrid, halo_file,halo_redshift, line_name='CII',\
+                        halo_cutoff_mass=1e11, use_scatter=False,halocat_file_type='dat', unit='mpc')
 
+print("Calculating power spectra")
 
+k, pk= utils.powerspectra_2d(gi, boxsize, ngrid, project_length=proj_L, volume_normalization=True)
 
-
-p_k_field, bins_field = get_power(pb.delta_x(), pb.boxlength)
-p_k_lnfield, bins_lnfield = get_power(lnpb.delta_x(), lnpb.boxlength)
-
-# The number of grid points are also required when passing the samples
-p_k_samples, bins_samples = get_power(samples, pb.boxlength,N=pb.N)
-p_k_lnsamples, bins_lnsamples = get_power(ln_samples, lnpb.boxlength,N=lnpb.N)

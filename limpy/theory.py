@@ -226,7 +226,7 @@ def I_line(z,line_name="CII"):
    
     L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
     L_line*=p.Lsun
-    factor= (p.c_in_m)/(4*p.Ghz_to_hz*np.pi*p.nu_rest(line_name)*p.cosmo.H_z(z))
+    factor= (p.c_in_m)/(4*p.Ghz_to_hz*np.pi*p.nu_rest(line_name=line_name)*p.cosmo.H_z(z))
 
     integrand=dndm * L_line
     integration=simps(integrand, mass_bin)

@@ -7,8 +7,17 @@ Created on Tue Jun  9 11:57:35 2020
 """
 from __future__ import division
 import numpy as np
-import cosmos 
+import importlib
+import imp 
+
+import cosmos as cosmos
 import params as p
+
+imp.reload(cosmos) 
+imp.reload(p)
+
+
+import warnings
 
 
 from multiprocessing import cpu_count
@@ -58,6 +67,32 @@ def physical_boxsize_to_degree(z, boxsize):
     theta_degree=theta_rad*180.0/np.pi
     return theta_degree
 
+
+def length_projection(z=None, dz=None, nu_obs=None, dnu=None, line_name='CII'):
+    if (z is None and dz is not None) or (z is not None and dz is None):
+        raise ValueError ("Specify z and dz together to calculate the projection length calculation.")
+        
+    if (nu_obs is None and dnu is not None) or (nu_obs is not None and dnu is None):
+        raise ValueError ("Specify nu_obs and dnu together to calculate the projection length calculation.")
+        
+    if (z is None and dz is None) and (nu_obs is None and dz is None):
+         raise ValueError ("Either specify z and dz together or nu_obs and dnu together for projection length calculation.")
+        
+        
+    if z !=None and dz !=None:
+        dco1=cosmo.D_co(z)
+        dco2=cosmo.D_co(z+dz)
+        res= (dco2-dco1)* p.m_to_mpc
+        
+    if dnu !=None and dnu !=None:
+        z_obs1=nu_obs_to_z(nu_obs, line_name=line_name)
+        z_obs2=nu_obs_to_z((nu_obs+dnu), line_name=line_name)
+        
+        dco1=cosmo.D_co(z_obs1)
+        dco2=cosmo.D_co(z_obs2)
+        res= (dco1-dco2)* p.m_to_mpc
+ 
+    return res
 
 def degree_to_comoving_size(z, theta_degree):
     """
@@ -117,7 +152,7 @@ def slice(datacube, ngrid, nproj, option='C'):
 
 def freq_2D(boxsize, ngrid):
     kf = 2.0*np.pi/boxsize
-    kn = np.pi/(boxsize/mgrid)
+    kn = np.pi/(boxsize/ngrid)
     
     return kf, kn
 
@@ -256,6 +291,11 @@ def sigma_noise(theta_min, NEI, experiment='ccatp'):
   
     
 def read_grid(fname, ngrid=None):
+    """
+    Read a 3D grid from a dat file. 
+    """
+    
+    
     with open(fname, 'rb') as f:
             grid = np.fromfile(f, dtype='f', count=-1)
     
@@ -264,6 +304,9 @@ def read_grid(fname, ngrid=None):
     else:       
         return grid
     
+
+
+
 def P_noise(z, theta_min, delta_nu, NEI, tobs_total, Nspec_eff, S_a):
     """
     White noise of an experiment.
@@ -377,7 +420,8 @@ def powerspectra_2d(x_grid, boxlength, ngrid, project_length=None, a=1, b=1, ndi
     cellsize=boxlength/ngrid
     
     if project_length is not None:
-        nproj=project_length/cellsize
+        nproj=int(round(project_length/cellsize))
+        print("The number of cells to be projected=", nproj)
     
     if project_length is not None:
         
@@ -388,6 +432,9 @@ def powerspectra_2d(x_grid, boxlength, ngrid, project_length=None, a=1, b=1, ndi
             g_yi= slice_2d(y_grid, ngrid, nproj)
             
     if project_length is None:
+        if(len(np.shape(x_grid)) != ndim):
+            raise ValueError ("X_grid should be a 2D grid.")
+        
         if x_grid is not None:
             g_xi = x_grid
         
@@ -395,8 +442,7 @@ def powerspectra_2d(x_grid, boxlength, ngrid, project_length=None, a=1, b=1, ndi
             g_yi= y_grid
         
         #raise ValueError("Specify a projection length along the radial direction for 2D power spectrum calculation")
-    
-    
+        
     ft_x, fq, kgrid_x = myfft(g_xi, boxlength, ngrid, a=a, b=b)
     
     if y_grid is not None:
@@ -404,69 +450,39 @@ def powerspectra_2d(x_grid, boxlength, ngrid, project_length=None, a=1, b=1, ndi
     else: 
         ft_y=ft_x
     
-    print("my freq is", fq)
-        
     
     P = np.real(ft_x * np.conj(ft_y) / Vbox ** 2)
             
-    print("my P is", P)
-    
     if volume_normalization:
         P*=Vbox
-
-    
     
     if len(fq) == len(P.shape):
-        print("Condition true")
-        # coords are a segmented list of dimensional co-ordinates
         fq = magnitude_grid(fq)
         
-        
-    
     if bins_num is not None:
         bins_num=bins_num 
-        
     else:
         N=[ngrid]*ndim
         bins_num=bins = int(np.product(N[:ndim]) ** (1. / ndim) / 2.2)
         
-    bins = np.linspace(fq.min(), fq.max(), (bins_num+1))
-    
-    
-    print("the first shape of bins", np.shape(bins))
-    
+    bins = np.linspace(fq.min(), fq.max(), (bins_num+1))    
     bin_index = np.digitize(fq.flatten(), bins)
-    
-    print("the first", np.shape(bin_index))
-    
-
-    
     binweight=np.bincount(bin_index, minlength=len(bins)+1)[1:-1]
     
+    # Do average over fields.    
+    #weights=np.real(P.flatten())
     
-    #return bin_indx, bins, sumweights
+    #print("the weight shape", np.shape(weights))
     
-    # Do average over fields.
-    field=P
-    print("the field shape", field)
-    
-    print("data type of field is ", field.dtype.kind)
-    
-    print("the bin_index", bin_index)
-    
-    weights=np.real(field.flatten())
-    
-    print("the weight shape", np.shape(weights))
-    
-    real_part = np.bincount(bin_index, weights=np.real(field.flatten()), minlength=len(binweight)+2)[1:-1] / binweight
-    if(field.dtype.kind=='c'):
-        imaginary_part = 1j * np.bincount(bin_index, weights=np.imag(field.flatten()), minlength=len(binweight)+2)[1:-1] / binweight
+    real_part = np.bincount(bin_index, weights=np.real(P.flatten()), minlength=len(binweight)+2)[1:-1] / binweight
+    if(P.dtype.kind=='c'):
+        imaginary_part = 1j * np.bincount(bin_index, weights=np.imag(P.flatten()), minlength=len(binweight)+2)[1:-1] / binweight
     else:
         imaginary_part=0
     
     field_average= real_part + imaginary_part
     
-    print("the weight shape", np.shape(weights))
+    #print("the weight shape", np.shape(weights))
     
     res = list(field_average)
     
@@ -474,6 +490,106 @@ def powerspectra_2d(x_grid, boxlength, ngrid, project_length=None, a=1, b=1, ndi
     
 
 
-
-
+def make_hlist_ascii_to_npz(hlist_path_ascii, filename=None):
+    """ 
+    Takes a hlist file in the form of Universemachine format and tranforms 
+    to a npz file with necessary quantities.
+    coumn 0: scale factor
+    coulumn 1: halo mass
+    column 2: x co-ordinate of halos
+    column 3: y co-ordinate of halos
+    column 4: z co-ordinate of halos
+    """
     
+    # reads only scale factor, halomass,x,y and z from the ascii file used in Universe machine
+    data=np.loadtxt(hlist_path_ascii)  
+    
+    # save the file in npz format either in mentioned filename or in original ascii filename
+    if filename:
+        np.savez(filename,m=data[:,0],x=data[:,1],y=data[:,2],z=data[:,3])
+    else:
+        np.savez(hlist_path_ascii,m=data[:,0], x=data[:,1], y=data[:,2], z=data[:,3])
+    return
+    
+
+def make_halocat(halo_file, filetype='npz',boxsize=160):
+    """
+    reads the mass and co-ordinates of halos from a npz file.
+    
+    Input: halo file in npz format
+    
+    Returns: m and (x,y,z)
+    """
+    if filetype=='npz':
+        fn=np.load(halo_file)
+        #halomass and x,y,z are read in the following format
+        halomass, halo_x, halo_y, halo_z = fn['m'], fn['x'],fn['y'],fn['z']
+        
+    if filetype=='dat':
+        halomass, halo_x, halo_y, halo_z=np.loadtxt(halo_file,unpack=True)
+        halomass, halo_x, halo_y, halo_z = halomass, halo_x*boxsize, halo_y*boxsize, halo_z *boxsize
+        
+    
+    # stack the co-ordinates together
+    halo_cm=np.column_stack([halo_x,halo_y,halo_z])
+    del halo_x
+    del halo_y
+    del halo_z
+    
+    halo_cm=halo_cm.flatten()
+    return halomass, halo_cm
+
+
+
+def make_grid_from_halocat(halo_catalouge, boxlength, ngrid, ndim, filetype='dat'):
+    mh, halo_cm=make_halocat(halo_catalouge,filetype=filetype, boxsize=boxlength)
+    
+    halo_cm=halo_cm.reshape(3, len(mh))
+    
+    cellsize=(boxlength/ngrid)
+    
+    bins = cellsize*np.arange(0,ngrid,1)
+    
+    bin_index_x=np.digitize(halo_cm[0], bins)
+    bin_index_y=np.digitize(halo_cm[1], bins)
+    bin_index_z=np.digitize(halo_cm[2], bins)
+    
+    binweight_x=np.bincount(bin_index_x, minlength=len(bins)+1)[1:-1]
+    binweight_y=np.bincount(bin_index_y, minlength=len(bins)+1)[1:-1]
+    binweight_z=np.bincount(bin_index_z, minlength=len(bins)+1)[1:-1]
+    
+    return binweight_x,  binweight_y,  binweight_z
+    
+
+
+def cic(x):
+    dx, f = np.modf(x)
+    return int(f), (1.0-dx, dx)
+  
+def grid(posarr, weight, boxlength, ngrid, ndim=3):
+    cell_size=boxlength/ngrid
+    Vcell=cell_size**ndim
+    
+    n = ngrid
+    gridarr = np.zeros(n**3)
+    for i in range(weight.size):
+        x = posarr[3*i]/cell_size
+        y = posarr[3*i+1]/cell_size
+        z = posarr[3*i+2]/cell_size
+        fx, cx = cic(x)
+        fy, cy = cic(y)
+        fz, cz = cic(z)
+        for i1 in range(2):
+            j1 = i1+fx if i1+fx < n else 0  
+            #print(j1)
+            for i2 in range(2):
+                j2 = i2+fy if i2+fy < n else 0 
+                for i3 in range(2):
+                    j3 = i3+fz if i3+fz < n else 0 
+                    gridarr[j3+n*(j2+n*j1)] += (cx[i1]*cy[i2]*cz[i3]*
+                                                weight[i]/Vcell)
+    return gridarr 
+
+
+
+
