@@ -35,8 +35,6 @@ proj_L=utils.length_projection(nu_obs=nu_obs, dnu=dnu, line_name=line_name)
 
 hm, cm=utils.make_halocat(halo_file, filetype='dat',boxsize=boxsize)
 
-#lum_wright=
-
 mass_cut=hm >= mmin
 halomass_cut=hm[mass_cut]
 
@@ -51,5 +49,5 @@ gi=ll.calc_intensity_3d(boxsize, ngrid, halo_file,halo_redshift, line_name='CII'
 
 print("Calculating power spectra")
 
-k, pk= utils.powerspectra_2d(gi, boxsize, ngrid, project_length=proj_L, volume_normalization=True)
+k, pk= utils.powerspectra_2d(gi, boxsize, ngrid, project_length=proj_L, volume_normalization=False)
 

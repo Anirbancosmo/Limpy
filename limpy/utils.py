@@ -5,7 +5,7 @@ Created on Tue Jun  9 11:57:35 2020
 
 @author: anirbanroy
 """
-from __future__ import division
+#from __future__ import division
 import numpy as np
 import importlib
 import imp 
@@ -414,24 +414,28 @@ def myifft(x_grid, boxlength, ngrid, ndim=2, a = 0, b=2*np.pi):
     return ift_res, np.array([frequency, frequency]), k_grid
 
 
-def powerspectra_2d(x_grid, boxlength, ngrid, project_length=None, a=1, b=1, ndim=2, volume_normalization=True, bins_num=None, y_grid=None):
+def powerspectra_2d(x_grid, boxlength, ngrid, project_length=None, nproj=None, a=1, b=1, ndim=2, volume_normalization=False, ignore_zero_mode=True, bins_num=None, y_grid=None):
     
     Vbox=boxlength**ndim
     cellsize=boxlength/ngrid
     
-    if project_length is not None:
-        nproj=int(round(project_length/cellsize))
-        print("The number of cells to be projected=", nproj)
     
-    if project_length is not None:
+    if (project_length is not None) and (nproj is None):
         
+        if(project_length != None):
+            nproj=int(round(project_length/cellsize))
+            print("The number of cells to be projected=", nproj)
+        if(nproj != None):
+            nproj=nproj
+            print("The number of cells to be projected=", nproj)
+            
         if x_grid is not None:
             g_xi = slice_2d(x_grid, ngrid, nproj)
         
         if y_grid is not None:
             g_yi= slice_2d(y_grid, ngrid, nproj)
             
-    if project_length is None:
+    if (project_length is None) and (nproj is None):
         if(len(np.shape(x_grid)) != ndim):
             raise ValueError ("X_grid should be a 2D grid.")
         
@@ -451,7 +455,7 @@ def powerspectra_2d(x_grid, boxlength, ngrid, project_length=None, a=1, b=1, ndi
         ft_y=ft_x
     
     
-    P = np.real(ft_x * np.conj(ft_y) / Vbox ** 2)
+    P = np.real(ft_x * np.conj(ft_y) / Vbox**2)
             
     if volume_normalization:
         P*=Vbox
@@ -464,6 +468,8 @@ def powerspectra_2d(x_grid, boxlength, ngrid, project_length=None, a=1, b=1, ndi
     else:
         N=[ngrid]*ndim
         bins_num=bins = int(np.product(N[:ndim]) ** (1. / ndim) / 2.2)
+        
+        
         
     bins = np.linspace(fq.min(), fq.max(), (bins_num+1))    
     bin_index = np.digitize(fq.flatten(), bins)

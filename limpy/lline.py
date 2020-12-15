@@ -625,7 +625,7 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
         print("Theta FWHM (arc-second):", theta_fwhm) 
         theta=theta_fwhm/60.0
 
-    luminosity_max=lum.max()
+    #luminosity_max=lum.max()
     x_arc=xl*dtm
     y_arc=yl*dtm
     
@@ -759,11 +759,11 @@ def calc_intensity_3d(boxsize, ngrid, halocat_file,halo_redshift, line_name='CII
     
     grid_lum=utils.grid(halo_cm, lcp, boxsize, ngrid, ndim=3)
     
-    print("shape of grid_lum", np.shape(grid_lum))
+    #print("shape of grid_lum", np.shape(grid_lum))
     
     prefac=p.c_in_m/(4*np.pi*p.nu_rest(line_name=line_name)*p.Ghz_to_hz*p.cosmo.H_z(halo_redshift))
     
-    print("shape of prefac", np.shape(prefac))
+    #print("shape of prefac", np.shape(prefac))
     
     grid_intensity= prefac*(grid_lum* p.Lsun/(V_cell*p.mpc_to_m**3))/p.jy_unit #transformed to jansky unit
     
