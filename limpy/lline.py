@@ -716,7 +716,7 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     plt.savefig("luminsoty_beam.png")
 
 
-def calc_intensity_3d(boxsize, ngrid, halocat_file,halo_redshift, line_name='CII',halo_cutoff_mass=1e11, use_scatter=False,halocat_file_type='npz', unit='mpc'):
+def calc_intensity_3d(boxsize, ngrid, halocat_file,halo_redshift, line_name='CII',halo_cutoff_mass=1e11, use_scatter=False,halocat_file_type='npz', intensity_unit='jy/sr'):
     '''
     Calculate luminosity for input parameters
     '''
@@ -765,7 +765,36 @@ def calc_intensity_3d(boxsize, ngrid, halocat_file,halo_redshift, line_name='CII
     
     #print("shape of prefac", np.shape(prefac))
     
-    grid_intensity= prefac*(grid_lum* p.Lsun/(V_cell*p.mpc_to_m**3))/p.jy_unit #transformed to jansky unit
+    
+    if (intensity_unit=="jy" or intensity_unit=="Jy" or intensity_unit=="JY"):
+        grid_intensity= prefac*(grid_lum* p.Lsun/(V_cell*p.mpc_to_m**3))/p.jy_unit #transformed to jansky unit
+        
+        
+    if (intensity_unit=="jy/sr" or intensity_unit=="Jy/sr" or intensity_unit=="JY/sr"):
+        grid_intensity= prefac*(grid_lum* p.Lsun/(V_cell*p.mpc_to_m**3))/p.jy_unit/(4*np.pi) # JY/sr unit
     
     return grid_intensity
 
+
+def intensity_power_spectra(boxsize, ngrid, halocat_file,halo_redshift, line_name='CII', project_length=None,
+                            halo_cutoff_mass=1e11, use_scatter=False, halocat_file_type='dat',intensity_unit='jy/sr', volume_normalization=False):
+    
+    I_grid=calc_intensity_3d(boxsize, ngrid, halocat_file,halo_redshift, line_name=line_name,
+                            halo_cutoff_mass=halo_cutoff_mass, use_scatter=use_scatter,
+                            halocat_file_type=halocat_file_type, intensity_unit=intensity_unit)
+    
+    
+    k, pk= utils.powerspectra_2d(I_grid, boxsize, ngrid, project_length=project_length, volume_normalization=volume_normalization)
+    
+    return k, pk
+
+
+    
+    
+    
+    
+    
+    
+
+    
+    

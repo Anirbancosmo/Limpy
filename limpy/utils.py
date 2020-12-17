@@ -169,7 +169,7 @@ def slice_2d(datacube, ngrid, nproj, operation='sum'):
     """
     
     ndim=np.ndim(datacube)
-    print("The dimension of data", ndim)
+    #print("The dimension of data", ndim)
     
     if(ndim==1):
         data_cut=datacube.reshape(ngrid, ngrid, ngrid)[:, :, :nproj]
@@ -367,7 +367,7 @@ def myfft(x_grid, boxlength, ngrid, ndim=2, a = 0, b=2*np.pi):
     cellsize=boxlength/ngrid
     V_cell=cellsize**ndim
     
-    print("V_cell", V_cell)
+    #print("V_cell", V_cell)
     
     #do fftn
     fftn_res=fftn(x_grid, axes=[0,1])
@@ -393,7 +393,7 @@ def myifft(x_grid, boxlength, ngrid, ndim=2, a = 0, b=2*np.pi):
     #volume of the box in k space
     V_k=boxlength_k**ndim
     
-    print("V_cell", V_k)
+    #print("V_cell", V_k)
     
     #do ifftn
     
@@ -424,10 +424,10 @@ def powerspectra_2d(x_grid, boxlength, ngrid, project_length=None, nproj=None, a
         
         if(project_length != None):
             nproj=int(round(project_length/cellsize))
-            print("The number of cells to be projected=", nproj)
+            #print("The number of cells to be projected=", nproj)
         if(nproj != None):
             nproj=nproj
-            print("The number of cells to be projected=", nproj)
+            #print("The number of cells to be projected=", nproj)
             
         if x_grid is not None:
             g_xi = slice_2d(x_grid, ngrid, nproj)
