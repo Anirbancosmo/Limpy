@@ -5,10 +5,10 @@ Created on Sun Sep 13 12:55:51 2020
 @author: anirbanroy
 """
 
-import inputs as inp
-import cosmos
+import limpy.inputs as inp
+import limpy.cosmos as cosmos
 import numpy as np
-import lline as ll
+import limpy.lline as ll
 #parameters
 
 line_name=inp.line_params['line_name']

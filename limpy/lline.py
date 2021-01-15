@@ -3,16 +3,16 @@
 
 from __future__ import division
 import numpy as np
-import params as p
+import limpy.params as p
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import utils  
+import limpy.utils   as utils
 from astropy.convolution import convolve, Gaussian2DKernel
 from astropy.modeling.models import Gaussian2D
 from scipy.interpolate import RectBivariateSpline, interp2d
 import matplotlib.colors as colors
 
-from plotsettings import *
+from limpy.plotsettings import *
 
 import matplotlib as pl
 pl.rcParams['xtick.labelsize'] = '10'
