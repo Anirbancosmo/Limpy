@@ -10,8 +10,8 @@ import numpy as np
 import importlib
 import imp 
 
-import cosmos as cosmos
-import params as p
+import limpy.cosmos as cosmos
+import limpy.params as p
 
 imp.reload(cosmos) 
 imp.reload(p)

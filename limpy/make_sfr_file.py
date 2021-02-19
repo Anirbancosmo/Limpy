@@ -7,7 +7,7 @@ Created on Wed Jul 22 21:00:41 2020
 import numpy as np
 from scipy.interpolate import interp2d, RectBivariateSpline, RegularGridInterpolator, SmoothBivariateSpline
 import matplotlib.pyplot as plt  
-from plotsettings import *
+from limpy.plotsettings import *
 
 
 f=np.loadtxt('/Users/anirbanroy/Documents/Limpy/data/sfh_z0_z8/sfr/sfr_release.dat')

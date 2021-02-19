@@ -3,17 +3,17 @@
 
 from __future__ import division
 import numpy as np
-import params as p
+import limpy.params as p
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import utils  
+import limpy.utils  
 from astropy.convolution import convolve, Gaussian2DKernel
 from astropy.modeling.models import Gaussian2D
 from scipy.interpolate import RectBivariateSpline, interp2d
 import matplotlib.colors as colors
 
-from plotsettings import *
-
+from limpy.plotsettings import *
+import os
 import matplotlib as pl
 pl.rcParams['xtick.labelsize'] = '10'
 pl.rcParams['ytick.labelsize'] = '10'
@@ -21,8 +21,9 @@ pl.rcParams['axes.labelsize'] = '15'
 pl.rcParams['axes.labelsize'] = '15'
 
 
-sfr_filepath='../data/'
-z,m,sfr_file=np.loadtxt(sfr_filepath+'sfr_beherozzi.dat', unpack=True)
+sfr_file=("../data/sfr_beherozzi.dat")
+
+z,m,sfr_file=np.loadtxt(sfr_file, unpack=True)
 
 zlen=137 #manually checked 
 mlen=int(len(z)/zlen)

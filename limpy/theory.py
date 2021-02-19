@@ -8,7 +8,7 @@ Created on Mon Jul 20 10:55:42 2020
 
 import numpy as np
 from hmf import MassFunction
-import params as p
+import limpy.params as p
 from scipy.integrate import simps
 from scipy.interpolate import interp1d
 

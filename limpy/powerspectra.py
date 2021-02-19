@@ -9,8 +9,8 @@ Created on Thu Dec 10 21:15:59 2020
 
 from __future__ import division
 import numpy as np
-import params as p
-import utils  
+import limpy.params as p
+import limpy.utils  
 
 from powerbox import get_power
 

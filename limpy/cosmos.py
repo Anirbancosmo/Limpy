@@ -8,7 +8,7 @@ Created on Sun Jul 12 11:57:30 2020
 
 import numpy as np
 
-import inputs as inp
+import limpy.inputs as inp
 import scipy.integrate as si
 import camb
 from camb import get_matter_power_interpolator
