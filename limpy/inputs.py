@@ -22,12 +22,8 @@ Cosmological Parameters
 line_params={
         
 'line_name': 'CII'
-        
-        
-        
-        
-        
-        }
+
+}
 
 cosmo_params={
         
@@ -56,7 +52,7 @@ code_params={
 Astrophysical Parameters
 """
 astro_params={
-        'Mmin': 1e9,
+        'Mmin': 1e11,
         'Mmax': 1e15,
         'Lsun': 3.828e26, #watts
         'delta_c':1.686,

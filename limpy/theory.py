@@ -231,7 +231,7 @@ def I_line(z,line_name="CII"):
     integrand=dndm * L_line
     integration=simps(integrand, mass_bin)
 
-    return (factor*integration)/(p.jy_unit)
+    return (factor*integration)/(p.jy_unit)/(4*np.pi)  # In Jy/sr unit
 
 
 
@@ -295,7 +295,7 @@ def Pk_line(k,z, fduty=1.0,line_name='CII',label='total', pk_unit='temperature')
             res=I_nu_square*(b_line(z, line_name=line_name)**2*pk_lin)
         if(label=='shot'):
             res=I_nu_square*(P_shot(z, line_name=line_name))
-            res=res*np.ones(len(k))
+            res=res
 
         #d2k=k**3*res/2/np.pi**2# in (Jy/sr)^2 unit
         return res
@@ -310,7 +310,7 @@ def Pk_line(k,z, fduty=1.0,line_name='CII',label='total', pk_unit='temperature')
             res=T_line_square*(b_line(z, line_name=line_name)**2*pk_lin)
         if(label=='shot'):
             res=T_line_square*(P_shot(z, line_name=line_name))
-            res=res*np.ones(len(k))
+            res=res
 
 
         #d2k=k**3*res/2/np.pi**2 #in K unit

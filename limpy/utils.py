@@ -414,7 +414,9 @@ def myifft(x_grid, boxlength, ngrid, ndim=2, a = 0, b=2*np.pi):
     return ift_res, np.array([frequency, frequency]), k_grid
 
 
-def powerspectra_2d(x_grid, boxlength, ngrid, project_length=None, nproj=None, a=1, b=1, ndim=2, volume_normalization=False, ignore_zero_mode=True, bins_num=None, y_grid=None):
+def powerspectra_2d(x_grid, boxlength, ngrid, project_length=None, nproj=None, a=1, b=1, ndim=2, 
+                    volume_normalization=False, ignore_zero_mode=True, bins_num=None, y_grid=None,
+                   remove_shotnoise=False):
     
     Vbox=boxlength**ndim
     cellsize=boxlength/ngrid
@@ -491,6 +493,14 @@ def powerspectra_2d(x_grid, boxlength, ngrid, project_length=None, nproj=None, a
     #print("the weight shape", np.shape(weights))
     
     res = list(field_average)
+    
+    if remove_shotnoise:
+        N1=x_grid.shape[0]
+        if y_grid is not None:
+            N2= y_grid.shape[0]
+        else: 
+            N2=N1
+        res[0] -= np.sqrt(Vbox ** 2 / N1 / N2) 
     
     return bins[1:], res
     

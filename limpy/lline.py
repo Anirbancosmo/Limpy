@@ -777,14 +777,16 @@ def calc_intensity_3d(boxsize, ngrid, halocat_file,halo_redshift, line_name='CII
 
 
 def intensity_power_spectra(boxsize, ngrid, halocat_file,halo_redshift, line_name='CII', project_length=None,
-                            halo_cutoff_mass=1e11, use_scatter=False, halocat_file_type='dat',intensity_unit='jy/sr', volume_normalization=False):
+                            halo_cutoff_mass=1e11, use_scatter=False, halocat_file_type='dat',intensity_unit='jy/sr', 
+                            remove_shotnoise =False, volume_normalization=False):
     
     I_grid=calc_intensity_3d(boxsize, ngrid, halocat_file,halo_redshift, line_name=line_name,
                             halo_cutoff_mass=halo_cutoff_mass, use_scatter=use_scatter,
                             halocat_file_type=halocat_file_type, intensity_unit=intensity_unit)
     
     
-    k, pk= utils.powerspectra_2d(I_grid, boxsize, ngrid, project_length=project_length, volume_normalization=volume_normalization)
+    k, pk= utils.powerspectra_2d(I_grid, boxsize, ngrid, project_length=project_length, volume_normalization=volume_normalization,  
+                                 remove_shotnoise= remove_shotnoise)
     
     return k, pk
 
