@@ -7,11 +7,18 @@ Created on Mon Jul 20 10:55:42 2020
 """
 
 import numpy as np
-from hmf import MassFunction
 import limpy.params as p
 from scipy.integrate import simps
 from scipy.interpolate import interp1d
 
+import matplotlib.pyplot as plt
+
+from colossus.lss import mass_function
+from colossus.lss import bias
+
+
+from colossus.cosmology import cosmology
+cosmology.setCosmology('planck18')
 
 
 """
@@ -21,11 +28,11 @@ from scipy.interpolate import interp1d
 #my_cosmo = cosmo_hmf.Cosmology()
 #my_cosmo.update(cosmo_params={"H0":71,"Om0":0.281,"Ode0":0.719,"Ob0":0.046})
 
-
-mf=MassFunction(Mmin=np.log10(p.Mmin), Mmax=np.log10(p.Mmax), hmf_model= p.Halo_model)
+'''
+mf=MassFunction(Mmin=np.log10(p.Mmin/p.small_h), Mmax=np.log10(p.Mmax/p.small_h), hmf_model= p.Halo_model)
 
 def hmf(z, Mmin=p.Mmin, Mmax=p.Mmax, Halo_model=p.Halo_model,output_quantity='dndm'):
-    '''Shet, Mo &  Tormen 2001'''
+    #Shet, Mo &  Tormen 2002
     #mf=MassFunction(z=z,Mmin=np.log10(p.Mmin), Mmax=np.log10(p.Mmax), hmf_model= p.Halo_model)
     #return mf.m, mf.dndlog10m
     mf.update(z=z)
@@ -36,6 +43,21 @@ def hmf(z, Mmin=p.Mmin, Mmax=p.Mmax, Halo_model=p.Halo_model,output_quantity='dn
     if(output_quantity=='nu'):
 
         return mf.m/p.small_h, mf.nu
+
+'''
+
+
+def hmf(z,  Mmin=p.Mmin, Mmax=p.Mmax, mdef = '500c', model = 'tinker08', q_out = 'dndlnM'):
+    Mass_bin = np.logspace(np.log10(Mmin),np.log10(Mmax), num=100)
+    Mh=Mass_bin/p.small_h
+    mfunc = mass_function.massFunction(Mh, z, mdef = mdef, model = model, q_out = q_out)
+    
+    mfunc*=p.small_h**3*(p.mpc_to_m)**-3
+            
+    dndm=mfunc/Mh
+    
+    return Mass_bin, dndm
+
 
 
 
@@ -231,8 +253,8 @@ def I_line(z,line_name="CII"):
     integrand=dndm * L_line
     integration=simps(integrand, mass_bin)
 
-    return (factor*integration)/(p.jy_unit)/(4*np.pi)  # In Jy/sr unit
-
+    return (factor*integration)/(p.jy_unit) # In Jy/sr unit #FIXME
+    #return (factor*integration)/(p.jy_unit)  # In Jy/sr unit
 
 
 def P_shot(z,line_name='CII'):
@@ -249,29 +271,12 @@ def P_shot(z,line_name='CII'):
     return int_numerator/int_denominator**2
 
 
-def nu(m,z):
-    m_n, nu=hmf(z, output_quantity='nu')
-    nu_int=interp1d(m_n, nu)
 
-    return  nu_int(m)
-
-
-def bias_nu(nu, delta_v=200.):
-        y = np.log10(delta_v)
-        A = 1.0 + 0.24*y*np.exp(-(4./y)**4.)
-        a = 0.44*y - 0.88
-        B = 0.183
-        b = 1.5
-        C = 0.019 + 0.107*y + 0.19*np.exp(-(4./y)**4.)
-        c = 2.4
-
-        return (1. - A*nu**a/(nu**a + p.delta_c**a) + B*nu**b + C*nu**c)
+def bias_dm(m,z, model='tinker10', mdef='500c'):
+    b = bias.haloBias(m/p.small_h, model = model, z = z, mdef = mdef)
+    return b
 
 
-def bias_dm(m,z):
-    nu_m=nu(m,z)
-
-    return bias_nu(nu_m, delta_v=200.)
 
 def b_line(z, line_name='CII'):
     mass_bin, dndm= hmf(z)

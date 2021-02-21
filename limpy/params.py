@@ -193,6 +193,7 @@ mpc_to_m= 3.086e+22 # meter
 m_to_mpc= 3.24e-23 # Mpc
 km_to_m= 1e3 #meter
 jy_unit= 1e-26 # Watts. m^{-2} HZ^{-1}
+jy_bi_sr= 1.2566e-25 # Watts. m^{-2} HZ^{-1} or kg s^{-2}
 Ghz_to_hz= 1e9  # Giga-Hertz to Hertz
 kb_si= 1.38e-23 #J/K
 

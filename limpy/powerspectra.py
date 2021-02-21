@@ -10,7 +10,7 @@ Created on Thu Dec 10 21:15:59 2020
 from __future__ import division
 import numpy as np
 import limpy.params as p
-import limpy.utils  
+import limpy.utils as lu
 
 from powerbox import get_power
 
@@ -28,10 +28,10 @@ def powerspectra(x_grid, boxlength, ngrid, project_length, y_grid=None):
     if project_length is not None:
         
         if x_grid:
-            g_xi, gx_j, x_ij = utils.slice(x_grid, ngrid, nproj, option='C')
+            g_xi, gx_j, x_ij = lu.slice(x_grid, ngrid, nproj, option='C')
         
         if y_grid is not None:
-            g_yi, g_yj, y_ij = utils.slice(y_grid, ngrid, nproj, option='C')
+            g_yi, g_yj, y_ij = lu.slice(y_grid, ngrid, nproj, option='C')
             
         if y_grid is None:
             g_yi, g_yj, y_ij=g_xi, gx_j, x_ij
@@ -53,7 +53,7 @@ def ps(fname, boxsize, opt="mean"):
     with open(fname, 'rb') as f:
             dens_gas = np.fromfile(f, dtype='f', count=-1)
             
-    data=utils.slice_2d(dens_gas, 512, 10, operation=opt)
+    data=lu.slice_2d(dens_gas, 512, 10, operation=opt)
     
     data_mean=np.mean(data)
     
