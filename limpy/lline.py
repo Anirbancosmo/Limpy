@@ -6,7 +6,7 @@ import numpy as np
 import limpy.params as p
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import limpy.utils  
+import limpy.utils as lu
 from astropy.convolution import convolve, Gaussian2DKernel
 from astropy.modeling.models import Gaussian2D
 from scipy.interpolate import RectBivariateSpline, interp2d
@@ -208,7 +208,7 @@ def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,line_
     #low_mass_log=0.0
     cellsize = boxsize/ngrid
     
-    halomass, halo_cm=utils.make_halocat(halocat_file,filetype='dat',boxsize=boxsize)
+    halomass, halo_cm=lu.make_halocat(halocat_file,filetype='dat',boxsize=boxsize)
     
     nhalo=len(halomass)
     # Overplot halos 
@@ -240,8 +240,8 @@ def save_luminosity_slice(boxsize, ngrid, nproj,halocat_file,halo_redshift,line_
     
     lcp=mhalo_to_lline(halomass_slice_cut, halo_redshift, line_name=line_name, use_scatter=use_scatter)
     
-    xdegree=utils.physical_boxsize_to_degree(halo_redshift,x_halos_cut )
-    ydegree=utils.physical_boxsize_to_degree(halo_redshift,y_halos_cut)
+    xdegree=lu.physical_boxsize_to_degree(halo_redshift,x_halos_cut )
+    ydegree=lu.physical_boxsize_to_degree(halo_redshift,y_halos_cut)
     
     if(saved_file_name==None):
         fname=("luminosity_CII_nproj_%d_z%1.2f" %(nproj, halo_redshift))
@@ -263,7 +263,7 @@ def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift, line_name=
     #low_mass_log=0.0
     cellsize = boxsize/ngrid
     
-    halomass, halo_cm=utils.make_halocat(halocat_file,filetype=halocat_file_type,boxsize=boxsize)
+    halomass, halo_cm=lu.make_halocat(halocat_file,filetype=halocat_file_type,boxsize=boxsize)
     
     nhalo=len(halomass)
     # Overplot halos 
@@ -296,8 +296,8 @@ def calc_luminosity(boxsize, ngrid, nproj,halocat_file,halo_redshift, line_name=
     for i in range(hcut_len):
         lcp[i]=mhalo_to_lline(halomass_slice_cut[i],halo_redshift,line_name=line_name, use_scatter=use_scatter)
    
-    xdegree=utils.comoving_boxsize_to_degree(halo_redshift,x_halos_cut )
-    ydegree=utils.comoving_boxsize_to_degree(halo_redshift,y_halos_cut)
+    xdegree=lu.comoving_boxsize_to_degree(halo_redshift,x_halos_cut )
+    ydegree=lu.comoving_boxsize_to_degree(halo_redshift,y_halos_cut)
     
     if(unit=='mpc'):
         return x_halos_cut, y_halos_cut, lcp
@@ -379,7 +379,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
             
             xmin=0
             ymin=0
-            xmax=ymax=utils.comoving_boxsize_to_degree(halo_redshift, boxsize)
+            xmax=ymax=lu.comoving_boxsize_to_degree(halo_redshift, boxsize)
             
             N=4
             xtick_mpc=ytick_mpc=np.linspace(0, boxsize, N)
@@ -436,7 +436,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
         
    
     
-        halomass, halo_cm=utils.make_halocat(halocat_file,filetype='dat',boxsize=boxsize)
+        halomass, halo_cm=lu.make_halocat(halocat_file,filetype='dat',boxsize=boxsize)
         
         nhalo=len(halomass)
         # Overplot halos 
@@ -482,7 +482,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
             
             xmin=0
             ymin=0
-            xmax=ymax=utils.comoving_boxsize_to_degree(halo_redshift, boxsize)
+            xmax=ymax=lu.comoving_boxsize_to_degree(halo_redshift, boxsize)
             
             N=4
             xtick_mpc=ytick_mpc=np.linspace(0, boxsize, N)
@@ -569,7 +569,7 @@ def plot_slice(boxsize, ngrid, nproj, dens_gas_file, halocat_file,halo_redshift,
             
             xmin=0
             ymin=0
-            xmax=ymax=utils.comoving_boxsize_to_degree(halo_redshift, boxsize)
+            xmax=ymax=lu.comoving_boxsize_to_degree(halo_redshift, boxsize)
             
             N=4
             xtick_mpc=ytick_mpc=np.linspace(0, boxsize, N)
@@ -680,7 +680,7 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
     
         
     if(plot_unit=='degree'):
-        x_tick=(utils.comoving_boxsize_to_degree(halo_redshift, boxsize))
+        x_tick=(lu.comoving_boxsize_to_degree(halo_redshift, boxsize))
         cell_size=x_tick/ngrid
         ticks=np.linspace(0, x_tick,num=tick_num)
         labels = [str("{:.1f}".format(xx)) for xx in ticks]
@@ -690,7 +690,7 @@ def plot_beam(theta_fwhm, beam_unit, boxsize, ngrid, nproj, halocat_file, halo_r
 
         
     if(plot_unit=='minute'):
-        x_tick=(dtm*utils.comoving_boxsize_to_degree(halo_redshift, boxsize))
+        x_tick=(dtm*lu.comoving_boxsize_to_degree(halo_redshift, boxsize))
         cell_size=x_tick/ngrid
         ticks=np.linspace(0, x_tick,num=tick_num)
         labels = [str("{:.1f}".format(xx)) for xx in ticks]
@@ -729,7 +729,7 @@ def calc_intensity_3d(boxsize, ngrid, halocat_file,halo_redshift, line_name='CII
     
     
     
-    halomass, halo_cm=utils.make_halocat(halocat_file,filetype=halocat_file_type,boxsize=boxsize)
+    halomass, halo_cm=lu.make_halocat(halocat_file,filetype=halocat_file_type,boxsize=boxsize)
     
     nhalo=len(halomass)
     x_halos = halo_cm[range(0,nhalo*3,3)]
@@ -758,7 +758,7 @@ def calc_intensity_3d(boxsize, ngrid, halocat_file,halo_redshift, line_name='CII
     for i in range(hcut_len):
         lcp[i]=mhalo_to_lline(halomass[i],halo_redshift,line_name=line_name, use_scatter=use_scatter)
     
-    grid_lum=utils.grid(halo_cm, lcp, boxsize, ngrid, ndim=3)
+    grid_lum=lu.grid(halo_cm, lcp, boxsize, ngrid, ndim=3)
     
     #print("shape of grid_lum", np.shape(grid_lum))
     
@@ -786,7 +786,7 @@ def intensity_power_spectra(boxsize, ngrid, halocat_file,halo_redshift, line_nam
                             halocat_file_type=halocat_file_type, intensity_unit=intensity_unit)
     
     
-    k, pk= utils.powerspectra_2d(I_grid, boxsize, ngrid, project_length=project_length, volume_normalization=volume_normalization,  
+    k, pk= lu.powerspectra_2d(I_grid, boxsize, ngrid, project_length=project_length, volume_normalization=volume_normalization,  
                                  remove_shotnoise= remove_shotnoise)
     
     return k, pk
