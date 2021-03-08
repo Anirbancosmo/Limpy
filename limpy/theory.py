@@ -13,6 +13,7 @@ from scipy.interpolate import interp1d
 
 import matplotlib.pyplot as plt
 
+from colossus.lss import bias
  
 """
 # IF we want to keep same cosmological parameters for the code and HMFcal
@@ -265,6 +266,7 @@ def epsilon(z, line_name='CII'):
     
     return integration
 
+
 def inu(z, line_name='CII'):
     mass_bin, dndlnM= hmf(z)
    
@@ -279,7 +281,6 @@ def inu(z, line_name='CII'):
     integrand=(factor* dndlnM * L_line)/(p.cosmo.H_z(z)*(1+z)**0)
     
     integration=simps(integrand, np.log(mass_bin))
-    
     
     return integration/(p.jy_unit)
 
