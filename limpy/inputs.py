@@ -27,14 +27,16 @@ line_params={
 
 cosmo_params={
         
-'h': 0.6766,
-'omega_lambda': 0.6889,
-'omgega_bh2': 0.02242,
+'h': 0.71,
+'omega_lambda': 0.719,
+'omgega_bh2': 0.0231886,
 'omgega_ch2': 0.11933,
-'omega_mh2' : 0.14240,
-'omega_k': -0.05,
-'tau': 0.0561,   
-'ns': 0.965
+'omega_mh2' : 0.1416521,
+'omega_k': 0.0,
+'tau': 0.066,   
+'ns': 0.963, 
+
+'sigma8': 0.8
 
 }
 
@@ -52,11 +54,11 @@ code_params={
 Astrophysical Parameters
 """
 astro_params={
-        'Mmin': 1e11,
+        'Mmin': 1e10,
         'Mmax': 1e15,
         'Lsun': 3.828e26, #watts
         'delta_c':1.686,
-        'halo_model': 'Tinker08'
+        'halo_model': 'sheth99'
         }
 
 
@@ -64,7 +66,7 @@ astro_params={
 Different line rest frame frequencies and other parameters
 """
 default_line_params={
-    'nu_CII': 1900, #GHz
+    'nu_CII': 1900.593, #GHz
     'nu_CO10': 115.27 #GHz
     #'nu_CO2_1': 2*115.27 #GHz
     #'nu_CO3_2': 3*115.27 #GHz

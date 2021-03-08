@@ -11,6 +11,8 @@ import numpy as np
 import limpy.lline as ll
 #parameters
 
+import camb
+
 line_name=inp.line_params['line_name']
 
 Mmin=inp.astro_params['Mmin']
@@ -24,8 +26,12 @@ Halo_model=inp.astro_params['halo_model']
 small_h=inp.cosmo_params['h']
 omega_matter=inp.cosmo_params['omega_mh2']/small_h**2
 omega_lambda=inp.cosmo_params['omega_lambda']
-
 use_scatter=inp.code_params['use_scatter']
+
+
+#Initialize CAMB params
+pars = camb.CAMBparams()
+
 
 def line_scattered_params(line_name='CII'):
     if(line_name=='CII'):
@@ -189,6 +195,7 @@ cosmo=cosmos.cosmo()
 #Constants
 c_in_m= 3e8 #meter/s
 c_in_mpc=9.72e-15 #Mpc/s
+kpc_to_m= 3.086e+19 # meter
 mpc_to_m= 3.086e+22 # meter
 m_to_mpc= 3.24e-23 # Mpc
 km_to_m= 1e3 #meter

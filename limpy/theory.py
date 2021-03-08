@@ -13,14 +13,7 @@ from scipy.interpolate import interp1d
 
 import matplotlib.pyplot as plt
 
-from colossus.lss import mass_function
-from colossus.lss import bias
-
-
-from colossus.cosmology import cosmology
-cosmology.setCosmology('planck18')
-
-
+ 
 """
 # IF we want to keep same cosmological parameters for the code and HMFcal
 """
@@ -28,8 +21,10 @@ cosmology.setCosmology('planck18')
 #my_cosmo = cosmo_hmf.Cosmology()
 #my_cosmo.update(cosmo_params={"H0":71,"Om0":0.281,"Ode0":0.719,"Ob0":0.046})
 
+
+
 '''
-mf=MassFunction(Mmin=np.log10(p.Mmin/p.small_h), Mmax=np.log10(p.Mmax/p.small_h), hmf_model= p.Halo_model)
+mf=MassFunction(Mmin=np.log10(p.Mmin), Mmax=np.log10(p.Mmax), hmf_model= p.Halo_model)
 
 def hmf(z, Mmin=p.Mmin, Mmax=p.Mmax, Halo_model=p.Halo_model,output_quantity='dndm'):
     #Shet, Mo &  Tormen 2002
@@ -37,25 +32,43 @@ def hmf(z, Mmin=p.Mmin, Mmax=p.Mmax, Halo_model=p.Halo_model,output_quantity='dn
     #return mf.m, mf.dndlog10m
     mf.update(z=z)
     if(output_quantity=='dndm'):
-        hm, dndm= mf.m/p.small_h, mf.dndm * p.small_h**4*(p.mpc_to_m)**-3
+        hm, dndm= mf.m, mf.dndlnm * (p.mpc_to_m)**-3
 
         return hm, dndm
     if(output_quantity=='nu'):
 
-        return mf.m/p.small_h, mf.nu
+        return mf.m , mf.nu
+
+
+
+
+def hmf(z,  Mmin=p.Mmin, Mmax=p.Mmax, mdef = '500c', model = 'tinker08', q_out = 'M2dndM'):
+    Mass_bin = np.logspace(np.log10(Mmin),np.log10(Mmax), num=100)
+    #Mh=Mass_bin/p.small_h
+    
+    Mh=Mass_bin
+    mfunc = mass_function.massFunction(Mh, z, mdef = mdef, model = model, q_out = q_out)
+    
+    rho_m0_kpc=cosmo_col.rho_m(0.0)
+    rho_m0_m= rho_m0_kpc*(p.kpc_to_m)**-3
+    
+    #mfunc*=(p.mpc_to_m)**-3
+            
+    dndm=mfunc*rho_m0_m/Mh**2
+    
+    return Mass_bin, dndm
 
 '''
 
 
-def hmf(z,  Mmin=p.Mmin, Mmax=p.Mmax, mdef = '500c', model = 'tinker08', q_out = 'dndlnM'):
-    Mass_bin = np.logspace(np.log10(Mmin),np.log10(Mmax), num=100)
-    Mh=Mass_bin/p.small_h
-    mfunc = mass_function.massFunction(Mh, z, mdef = mdef, model = model, q_out = q_out)
-    
-    mfunc*=p.small_h**3*(p.mpc_to_m)**-3
-            
-    dndm=mfunc/Mh
-    
+
+p.cosmo.hmf(1, 1e10, 1e15)
+
+
+
+
+def hmf(z,  Mmin=p.Mmin, Mmax=p.Mmax):
+    Mass_bin, dndm= p.cosmo.hmf(z, Mmin, Mmax)
     return Mass_bin, dndm
 
 
@@ -229,75 +242,111 @@ def mhalo_to_lline(Mhalo, z, line_name='CII'):
 
 def T_line(z,line_name="CII",fduty=1.0):
 
-    mass_bin, dndm= hmf(z)
+    mass_bin, dndlnM= hmf(z)
 
     L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
     L_line*=p.Lsun
 
     nu_rest_line_Hz=p.nu_rest(line_name)*p.Ghz_to_hz
-    integrand=dndm * L_line
-    integration=simps(integrand, mass_bin)
+    integrand=dndlnM * L_line
+    integration=simps(integrand, np.log(mass_bin))
     factor=fduty*(p.c_in_m**3/8.0/np.pi)*((1+z)**2/(p.kb_si*nu_rest_line_Hz**3*p.cosmo.H_z(z)))
     result=factor*integration
     return result
 
 
-def I_line(z,line_name="CII"):
-    #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
-    mass_bin, dndm= hmf(z)
+
+def epsilon(z, line_name='CII'):
+    mass_bin, dndlnM= hmf(z)
+    L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
+    L_line*=p.Lsun
+    integrand=dndlnM * L_line
+    integration=simps(integrand, np.log(mass_bin))
+    
+    return integration
+
+def inu(z, line_name='CII'):
+    mass_bin, dndlnM= hmf(z)
    
     L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
     L_line*=p.Lsun
+    #factor= (p.c_in_m)/(4*p.Ghz_to_hz*np.pi*p.nu_rest(line_name=line_name)*p.cosmo.H_z(z))
+    
+    factor= (p.c_in_m)/(4*p.Ghz_to_hz*np.pi*p.nu_rest(line_name=line_name))
+    
+    
+
+    integrand=(factor* dndlnM * L_line)/(p.cosmo.H_z(z)*(1+z)**0)
+    
+    integration=simps(integrand, np.log(mass_bin))
+    
+    
+    return integration/(p.jy_unit)
+
+
+
+
+def I_line(z,line_name="CII"):
+    #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
+    mass_bin, dndlnM= hmf(z)
+   
+    L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
+    L_line*=p.Lsun
+    #factor= (p.c_in_m)/(4*p.Ghz_to_hz*np.pi*p.nu_rest(line_name=line_name)*p.cosmo.H_z(z))
+    
     factor= (p.c_in_m)/(4*p.Ghz_to_hz*np.pi*p.nu_rest(line_name=line_name)*p.cosmo.H_z(z))
 
-    integrand=dndm * L_line
-    integration=simps(integrand, mass_bin)
+    integrand=dndlnM * L_line
+    
+    integration=simps(integrand, np.log(mass_bin))
 
-    return (factor*integration)/(p.jy_unit) # In Jy/sr unit #FIXME
+    return (factor*integration)/(p.jy_unit)# In Jy/sr unit 
     #return (factor*integration)/(p.jy_unit)  # In Jy/sr unit
 
 
 def P_shot(z,line_name='CII'):
     #mass_range=np.logspace(np.log10(Mmin), np.log10(Mmax),num=500)
-    mass_bin, dndm= hmf(z)
+    mass_bin, dndlnM= hmf(z)
     L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
     L_line*=p.Lsun
 
-    integrand_numerator=dndm*(L_line)**2/(p.mpc_to_m)**-3 #in Mpc unit
-    integrand_denominator=dndm*(L_line)/(p.mpc_to_m)**-3 #in Mpc unit
-    int_numerator=simps(integrand_numerator, mass_bin)
-    int_denominator=simps(integrand_denominator, mass_bin)
+    integrand_numerator=dndlnM*(L_line)**2/(p.mpc_to_m)**-3 #in Mpc unit
+    integrand_denominator=dndlnM*(L_line)/(p.mpc_to_m)**-3 #in Mpc unit
+    int_numerator=simps(integrand_numerator, np.log(mass_bin))
+    int_denominator=simps(integrand_denominator, np.log(mass_bin))
 
     return int_numerator/int_denominator**2
 
 
 
-def bias_dm(m,z, model='tinker10', mdef='500c'):
-    b = bias.haloBias(m/p.small_h, model = model, z = z, mdef = mdef)
+def bias_dm(m,z, model='tinker10', mdef='200c'):
+    #b = bias.haloBias(m/p.small_h, model = model, z = z, mdef = mdef)
+    
+    b = bias.haloBias(m,  z=z, model=model, mdef=mdef)
     return b
 
 
 
 def b_line(z, line_name='CII'):
-    mass_bin, dndm= hmf(z)
+    mass_bin, dndlnM= hmf(z)
     L_line= mhalo_to_lline(mass_bin, z, line_name=line_name)
     L_line*=p.Lsun
-    integrand_numerator=dndm*(L_line)*bias_dm(mass_bin, z)
-    integrand_denominator=dndm*(L_line)
-    int_numerator=simps(integrand_numerator, mass_bin)
-    int_denominator=simps(integrand_denominator, mass_bin)
+    integrand_numerator=dndlnM*(L_line)*bias_dm(mass_bin, z)
+    integrand_denominator=dndlnM*(L_line)
+    int_numerator=simps(integrand_numerator, np.log(mass_bin))
+    int_denominator=simps(integrand_denominator, np.log(mass_bin))
 
     return int_numerator/int_denominator
 
 
-def Pk_line(k,z, fduty=1.0,line_name='CII',label='total', pk_unit='temperature'):
+def Pk_line(k,z, fduty=1.0,line_name='CII',label='total', pk_unit='intensity'):
     if(pk_unit=='intensity'):
         I_nu_square=I_line(z,line_name=line_name)**2
         pk_lin=p.cosmo.pk_camb(k,z)
         if(label=='total'):
-            res=I_nu_square*(b_line(z, line_name=line_name)**2*pk_lin+P_shot(z, line_name=line_name))
+            res=I_nu_square*b_line(z, line_name=line_name)**2*pk_lin+I_nu_square*P_shot(z, line_name=line_name)
         if(label=='clustering'):
-            res=I_nu_square*(b_line(z, line_name=line_name)**2*pk_lin)
+            res=I_nu_square*b_line(z, line_name=line_name)**2*pk_lin
         if(label=='shot'):
             res=I_nu_square*(P_shot(z, line_name=line_name))
             res=res

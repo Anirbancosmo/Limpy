@@ -12,6 +12,12 @@ import limpy.inputs as inp
 import scipy.integrate as si
 import camb
 from camb import get_matter_power_interpolator
+
+from colossus.lss import mass_function
+from colossus.lss import bias
+
+from colossus.cosmology import cosmology as col_cosmology
+
 class cosmo():
     
     def __init__(self):
@@ -21,6 +27,8 @@ class cosmo():
         self.om=inp.cosmo_params['omega_mh2']/self.h**2
         self.ocdm=inp.cosmo_params['omgega_ch2']/self.h**2
         self.ns=inp.cosmo_params['ns']
+        self.sigma8=inp.cosmo_params['sigma8']
+        
         self.H0=100*self.h # Km/S/Mpc
            
         if inp.cosmo_params['omega_k'] is not None:
@@ -32,7 +40,8 @@ class cosmo():
         self.c_in_m=inp.default_constants['c_in_m']
         self.mpc_to_m=inp.default_constants['mpc_to_m']
         self.km_to_m=inp.default_constants['km_to_m']
-            
+        
+        self.halo_model=inp.astro_params['halo_model']
         
         
         
@@ -95,7 +104,7 @@ class cosmo():
         
         return [self.D_angular(z[i])/(1+z[i])**2 for i in(len[z])]
     
-    def pk_camb(self,k,z, kmax=10.0):       
+    def pk_camb(self,k,z, kmax=10.0):          
         pars = camb.CAMBparams()
         pars.set_cosmology(H0=100*self.h, ombh2=self.ob*self.h**2, omch2=self.ocdm*self.h**2)
         pars.InitPower.set_params(ns=self.ns)
@@ -105,3 +114,53 @@ class cosmo():
         PK = get_matter_power_interpolator(pars);
     
         return PK.P(z,k)
+    
+    
+    def pk_lin_camb(self,k,z, kmax=10.0):
+        
+        
+        pars = camb.CAMBparams()
+        pars.set_cosmology(H0=self.H0, ombh2=self.ob*self.h**2, omch2=self.ocdm*self.h**2)
+        pars.InitPower.set_params(ns=self.ns)
+        
+        pars.set_matter_power(redshifts=[z], kmax=2.0)
+        pk = get_matter_power_interpolator(pars)
+        
+        
+        return pk
+    
+    
+    
+    def set_cosmo_colossus(self):
+        params = {'flat': True, 'H0': self.H0, 'Om0': self.om, 'Ob0': self.ob, 'sigma8': self.sigma8, 'ns': self.ns}
+        col_cosmology.addCosmology('myCosmo', params)
+        cosmo_col=col_cosmology.setCosmology('myCosmo')
+        
+        print(cosmo_col)
+
+
+
+    def hmf(self, z,  Mmin, Mmax, mdef = 'fof', q_out = 'dndlnM', print_cosmo=False):
+        
+        params = {'flat': True, 'H0': self.H0, 'Om0': self.om, 'Ob0': self.ob, 'sigma8': self.sigma8, 'ns': self.ns}
+        col_cosmology.addCosmology('myCosmo', params)
+        colcosmo=col_cosmology.setCosmology('myCosmo')
+        
+        if print_cosmo:
+            print(colcosmo)
+
+        Mass_bin = np.logspace(np.log10(Mmin),np.log10(Mmax), num=100)
+        #Mh=Mass_bin/p.small_h
+        
+        Mh=Mass_bin
+        mfunc = mass_function.massFunction(Mh, z, mdef = mdef, model = self.halo_model, q_out = q_out)
+        
+        mpc_to_m= 3.086e+22
+        
+        mfunc*=(mpc_to_m)**-3
+                
+        dndm=mfunc
+        
+        return Mass_bin, dndm
+
+
