@@ -4,7 +4,7 @@
 _A python package for multi-line intensity mapping_
 
 ### Description
-LIMpy package is useful to model and alayze multi line intensity maps of CII (158 $\mu m$), OIII (88 $\mu m$), and CO (1-0) to CO (13-12) transitions. 
+LIMpy is code for modelling multi-line intensity maps of CII (158 $\mu m$), OIII (88 $\mu m$), and CO (1-0) to CO (13-12) transitions. 
 This code can be used for following things:
 * Analytic model for star formation rate
 * Multi-line luminosity models
@@ -17,8 +17,8 @@ This code can be used for following things:
 ### Requirements 
 This code uses mainly three external packages:
 * [CAMB](https://github.com/cmbant/CAMB): Used to calculate the matter power spectrum. 
-* [Colossus](https://bdiemer.bitbucket.io/colossus/): used mainly to calculate halo mass function. 
-* [Astropy](https://www.astropy.org/): used to implement beam convolution. 
+* [Colossus](https://bdiemer.bitbucket.io/colossus/): Used mainly to calculate halo mass function. 
+* [Astropy](https://www.astropy.org/): Used to implement beam convolution. 
     
 
 ### Installation
@@ -31,7 +31,7 @@ You can install **LIMpy** by cloning the package directly from GitHub.
 </code>
 
 ### Initialization
-Set the default cosmological and Astrophysical parameters in input.py file. These parameters will be used to fix the halo mass function, 
+Set the default cosmological and Astrophysical parameters in input.py file. These parameters will be used to fix the halo mass function.
 
 ### Examples
 See my [examples](examples/) folder for a quick start.
