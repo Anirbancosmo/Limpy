@@ -22,17 +22,13 @@ This code uses mainly three external packages:
     
 
 ### Installation
-You can install **LIMpy** by cloning the package directly from GitHub or by using pip.
+You can install **LIMpy** by cloning the package directly from GitHub.
 
-
- <code>   git clone https://github.com/Anirbancosmo/Limpy.git
+<code>
+    git clone https://github.com/Anirbancosmo/Limpy.git
     cd Limpy
-    python setup.py install</code>
-
-
-For installing the package using pip, use the following command
-
-<code> pip install limpy  </code>
+    python setup.py install
+</code>
 
 ### Initialization
 Set the default cosmological and Astrophysical parameters in input.py file. These parameters will be used to fix the halo mass function, 
