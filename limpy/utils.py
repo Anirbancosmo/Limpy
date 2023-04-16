@@ -327,7 +327,7 @@ def t_pix(theta_beam, tobs_total, Ndet_eff, S_area, beam_unit="arcmin"):
     res = tobs_total * Ndet_eff * omega_beam / (S_area_rad)
     return res
 
-
+'''
 def V_surv(z, S_area, B_nu, line_name="CII158"):
     """
     Calculates the survey volume in MPc.
@@ -348,7 +348,7 @@ def V_surv(z, S_area, B_nu, line_name="CII158"):
     y = lambda_line * (1 + z) ** 2 / p.cosmo.H_z(z)
     res = p.cosmo.D_co(z) ** 2 * y * (Sa_rad) * B_nu
     return res  # (Mpc/h)^3
-
+'''
 
 def nu_obs_to_z(nu_obs, line_name="CII158"):
     """
@@ -408,7 +408,7 @@ def V_pix(z, theta_beam, delta_nu, beam_unit="arcmin", line_name="CII158"):
 
 
 def box_freq_to_quantities(
-    nu_obs=280, dnu_obs=2.8, boxsize=80, ngrid=512, z_start=None, line_name="CII"
+    nu_obs=280, dnu_obs=2.8, boxsize=80, ngrid=512, z_start=None, line_name="CII158"
 ):
 
     nu_rest = p.nu_rest(line_name=line_name)
@@ -495,9 +495,18 @@ def P_noise_ccatp(nu=220):
     return res
 
 
-def N_modes(k, z, delta_k, A_s, B_nu, line_name="CII"):
-    Vs = V_surv(z, A_s, B_nu, line_name=line_name)
+def N_modes(k, z, delta_k, Vs):
     res = 2 * np.pi * k**2 * delta_k * Vs / (2 * np.pi) ** 3
+    return res
+
+
+def V_survey(z, dnu_obs=2.8, area= 16, line_name = "CII158"):
+    "Survey field for CII lines" # given by Gong et al. 2012
+    
+    lambda_line = p.lambda_line(line_name=line_name)
+
+    res= 3.7e7 * np.sqrt((1+z)/8)* (area/ 16) * (dnu_obs/ 20) * (lambda_line/158)
+
     return res
 
 

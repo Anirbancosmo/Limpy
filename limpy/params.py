@@ -96,7 +96,6 @@ def model_avail(line_name="CII158", do_print=False):
             "Silva15-m2",
             "Silva15-m3",
             "Silva15-m4",
-            "Padmanabhan18",
             "Fonseca16",
             "Lagache18",
             "Schaerer20",
@@ -104,7 +103,7 @@ def model_avail(line_name="CII158", do_print=False):
         ]
 
     if line_name == "CO10":
-        model_names = ["Visbal10", "Kamenetzky15", "Padmanabhan18", "Alma_scalling"]
+        model_names = ["Visbal10", "Kamenetzky15", "Alma_scalling"]
 
     if (
         line_name == "CO21"
@@ -121,7 +120,7 @@ def model_avail(line_name="CII158", do_print=False):
         or line_name == "CO1312"
     ):
 
-        model_names = ["Visbal10", "Kamenetzky15", "Padmanabhan18", "Alma_scalling"]
+        model_names = ["Visbal10", "Kamenetzky15", "Alma_scalling"]
 
     if line_name == "NII122":
         model_names = ["Visbal10"]
