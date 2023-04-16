@@ -544,15 +544,6 @@ def get_pk_perp_para(
         bins=[k_para_bins, k_perp_bins],
     )
     Pgrid = result.statistic
-
-    # kgrid=np.meshgrid(k_para_bins , k_perp_bins , indexing='ij')
-
-    # kgrid_cen=np.meshgrid(k_para_cen, k_perp_cen, indexing='ij')
-
-    # dkgrid= np.diff(kgrid)
-
-    # Nmodes= stats.binned_statistic_2d(kgrid_para.flatten(), kgrid_perp.flatten(), kgrid.flatten(), statistic = "sum", bins = [k_para_bins, k_perp_bins] )
-
     return k_para_bins, k_perp_bins, np.nan_to_num(Pgrid, nan=0.0)
 
 
@@ -645,6 +636,68 @@ def plot_pk_para_perp(pk_grid, k_para, k_perp, kscale="log", vmin=None, vmax=Non
         cb.ax.tick_params("both", which="major", length=3, width=1, direction="out")
         # cb.set_ticks([-10,-8,-6])
         plt.tight_layout()
+
+
+
+def pk_error(k, pk_signal, pk_noise, Vsurv, noise_prop = "SN", bin_num = 10, binning_scheme = "log",
+             binning_method = "average", kmin = None, kmax = None):
+
+    if kmin == None:
+        kmin = k.min()
+    else:
+        kmin = kmin
+
+    if kmax == None:
+        kmax = k.max()
+    else:
+        kmax = kmax
+
+    if binning_scheme == "log":
+        knew = np.logspace(np.log10(kmin), np.log10(kmax), num=(bin_num+1))
+
+    if binning_scheme == "linear":
+        knew = np.linspace(kmin, kmax, num=(bin_num+1))
+
+    if np.isscalar(pk_noise) == True:
+        pk_noise = pk_noise * np.ones(len(k))
+    else:
+        pk_noise = pk_noise
+
+    deltak = np.diff(knew)
+    k_cen = (knew[1:] + knew[:-1]) / 2
+
+    if binning_method == "interpolation":
+        Nmodes = 2 * np.pi * k_cen**2 * deltak * Vsurv / (2 * np.pi) ** 3
+
+        pksignal_int = np.interp(k_cen, k, pk_signal)
+
+        pknoise_int = np.interp(k_cen, k, pk_noise)
+
+        var = (pksignal_int + pknoise_int) ** 2 / Nmodes
+
+    if binning_method == "average":
+        Nmodes = 2 * np.pi * k_cen**2 * deltak * Vsurv / (2 * np.pi) ** 3
+
+        pksignal_int = np.zeros(bin_num)
+        pknoise_int = np.zeros(bin_num)
+
+        for i in range(bin_num):
+            kstart = kmin
+            kend = kstart + deltak[i]
+            kmin = kmin + deltak[i]
+
+            k_indices = np.where(np.logical_and(k >= kstart,  k <= kend))
+            pksignal_int[i] = np.mean(pk_signal[k_indices] )
+
+            pknoise_int[i] = np.mean( pk_noise[k_indices] )
+
+    if noise_prop == "ON":
+        var = (pksignal_int + pknoise_int) ** 2 / Nmodes
+
+    if (noise_prop == "SN" or noise_prop == "NS"):
+        var = (pknoise_int) ** 2 / Nmodes
+
+    return k_cen, pksignal_int, np.sqrt(var)
 
 
 def getindep(nx, ny, nz):
