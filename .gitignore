@@ -5,5 +5,5 @@ build/
 dist
 .DS_Store
 *.txt
-examples/.ipynb_checkpoints
+examples/*.ipynb_checkpoints
 examples/markdown.ipynb
