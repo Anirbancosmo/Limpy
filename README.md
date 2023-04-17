@@ -23,7 +23,6 @@ This code uses mainly three external packages:
 
 ### Installation
 You can install **LIMpy** by cloning the package directly from GitHub.
-
 <code>
     git clone https://github.com/Anirbancosmo/Limpy.git
     cd Limpy
