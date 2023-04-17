@@ -49,7 +49,7 @@ If you find this package (or the paper) helpful in your research, please cite th
     @article{Roy:2023,
     author = "Roy, Anirban and Valent\'in-Mart\'inez, Dariannette and Wang, Kailai and Battaglia, Nick and van Engelen, Alex",
     title = "{$\texttt{𝙻𝙸𝙼𝚙𝚢}$ : A Semi-analytic Approach to Simulating Multi-line Intensity Maps at Millimetre Wavelengths}",
-    eprint = "2304.4842106",
+    eprint = "2304.06748",
     archivePrefix = "arXiv",
     primaryClass = "astro-ph.CO",
     month = "4",
