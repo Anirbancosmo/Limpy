@@ -22,9 +22,10 @@ setup_kwargs = {
 'author_email': 'anirbanroy.personal@gmail.com', 
 'packages':['limpy'],
 'zip_safe': False, 
+'install_requires':['camb', 'colossus', 'astropy']}
 
-'install_requires':['camb', 'colossus', 'astropy']
-}
 
 if __name__ == '__main__': 
 	setup(**setup_kwargs)
+
+
