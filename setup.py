@@ -24,9 +24,6 @@ setup_kwargs = {
 'zip_safe': False, 
 
 'install_requires':['camb', 'colossus', 'astropy']
-
-
-
 }
 
 if __name__ == '__main__': 
