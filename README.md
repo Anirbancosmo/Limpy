@@ -21,9 +21,8 @@ This code uses mainly three external packages:
 * [Colossus](https://bdiemer.bitbucket.io/colossus/): used mainly to calculate halo mass function.
 * [Astropy](https://www.astropy.org/): used to implement beam convolution.
 
-
 ### Installation
-You can install **LIMpy** by cloning the package directly from GitHub or by using pip.
+You can install **LIMpy** by cloning the package directly from GitHub.
 <code>
     git clone https://github.com/Anirbancosmo/Limpy.git
     cd Limpy
