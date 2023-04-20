@@ -52,8 +52,7 @@ If you find this package (or the paper) helpful in your research, please cite th
     archivePrefix = "arXiv",
     primaryClass = "astro-ph.GA",
     month = "4",
-    year = "2023"
-}
+    year = "2023"}
 
 ### Contact
 Anirban Roy (ar689@cornell.edu)
