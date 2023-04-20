@@ -7,8 +7,7 @@ import matplotlib as pl
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
-import os
-
+import os.path
 from astropy.convolution import Gaussian2DKernel, convolve
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -29,19 +28,12 @@ small_h = p.cosmo.h
 ##     Interpolate the sfr for different models at the beginning
 ################################################################################
 
-#data_path = "../data/"
+data_path = "../data/"
 
 # Read the files of saved data files for sfr
-#sfr_file_tng100 = "sfr_processed_TNG100-1.npz"
-
-#data_path = os.path.join(os.path.dirname(__file__), 'data', 'data1.txt')
-sfr_file_Behroozi19 = os.path.join(os.path.dirname(__file__), '../data', 'sfr_Behroozi.dat')
-sfr_file_tng100 = os.path.join(os.path.dirname(__file__), '../data', 'sfr_processed_TNG100-1.npz')
-sfr_file_tng300 = os.path.join(os.path.dirname(__file__), '../data', 'sfr_processed_TNG300-1.npz')
-
-#sfr_file_tng100 = data_path + "sfr_processed_TNG100-1.npz"
-#sfr_file_tng300 = data_path + "sfr_processed_TNG300-1.npz"
-#sfr_file_Behroozi19 = data_path + "sfr_Behroozi.dat"
+sfr_file_tng100 = data_path + "sfr_processed_TNG100-1.npz"
+sfr_file_tng300 = data_path + "sfr_processed_TNG300-1.npz"
+sfr_file_Behroozi19 = data_path + "sfr_Behroozi.dat"
 
 
 # read and interpolate Behroozi
@@ -2553,8 +2545,8 @@ def make_intensity_grid(
             beam_size = lu.angle_to_comoving_size(z_start, theta)
             #beam_std = beam_size / (np.sqrt(8 * np.log10(2.0)))
 
-            beam_std_x = beam_size / (np.sqrt(8 * np.log10(2.0)))/cellsize_x
-            beam_std_y = beam_size / (np.sqrt(8 * np.log10(2.0)))/cellsize_y
+            beam_std_x = beam_size / (np.sqrt(8 * np.log(2.0)))/cellsize_x
+            beam_std_y = beam_size / (np.sqrt(8 * np.log(2.0)))/cellsize_y
 
             gauss_kernel = Gaussian2DKernel(beam_std_x, y_stddev = beam_std_y)
             grid_quantity = Igcal[:,:, i: i+1].reshape(ngrid_x, ngrid_y)
@@ -3173,8 +3165,8 @@ def get_beam_cov_3d(grid_quantity, halo_redshift,
     cellsize_x = boxsize_x / ngrid_x
     cellsize_y = boxsize_y / ngrid_y
 
-    beam_std_x = beam_size / (np.sqrt(8 * np.log10(2.0)))/cellsize_x
-    beam_std_y = beam_size / (np.sqrt(8 * np.log10(2.0)))/cellsize_y
+    beam_std_x = beam_size / (np.sqrt(8 * np.log(2.0)))/cellsize_x
+    beam_std_y = beam_size / (np.sqrt(8 * np.log(2.0)))/cellsize_y
 
     gauss_kernel = Gaussian2DKernel(beam_std_x, y_stddev = beam_std_y)
 
