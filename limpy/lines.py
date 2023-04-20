@@ -7,6 +7,8 @@ import matplotlib as pl
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
+import os
+
 from astropy.convolution import Gaussian2DKernel, convolve
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -27,12 +29,19 @@ small_h = p.cosmo.h
 ##     Interpolate the sfr for different models at the beginning
 ################################################################################
 
-data_path = "../data/"
+#data_path = "../data/"
 
 # Read the files of saved data files for sfr
-sfr_file_tng100 = data_path + "sfr_processed_TNG100-1.npz"
-sfr_file_tng300 = data_path + "sfr_processed_TNG300-1.npz"
-sfr_file_Behroozi19 = data_path + "sfr_Behroozi.dat"
+#sfr_file_tng100 = "sfr_processed_TNG100-1.npz"
+
+#data_path = os.path.join(os.path.dirname(__file__), 'data', 'data1.txt')
+sfr_file_Behroozi19 = os.path.join(os.path.dirname(__file__), '../data', 'sfr_Behroozi.dat')
+sfr_file_tng100 = os.path.join(os.path.dirname(__file__), '../data', 'sfr_processed_TNG100-1.npz')
+sfr_file_tng300 = os.path.join(os.path.dirname(__file__), '../data', 'sfr_processed_TNG300-1.npz')
+
+#sfr_file_tng100 = data_path + "sfr_processed_TNG100-1.npz"
+#sfr_file_tng300 = data_path + "sfr_processed_TNG300-1.npz"
+#sfr_file_Behroozi19 = data_path + "sfr_Behroozi.dat"
 
 
 # read and interpolate Behroozi
