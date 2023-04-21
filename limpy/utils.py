@@ -980,10 +980,10 @@ def get_noise_grid(pk_noise,
 
     Vol=(boxsize_x/ x_ngrid)  * (boxsize_y/ y_ngrid) * (boxsize_z/ z_ngrid)
 
-    print("Calculating Fourier Transform to generate noise grid")
+    print("Calculating Fourier Transform to generate noise grid in Fourier space")
     f1=np.sqrt(pk_noise)*np.fft.fftn(num_norm)/np.sqrt(Vol)
 
-    print("Calculating Inverse Fourier Transform to generate noise grid")
+    print("Calculating Inverse Fourier Transform to generate noise grid in Real space")
     f1_rp=np.fft.ifftn(f1)
     f2=np.real(f1_rp)
     
