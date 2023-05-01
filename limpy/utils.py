@@ -16,6 +16,7 @@ import limpy.params as p
 imp.reload(cosmos)
 imp.reload(p)
 
+from astropy.convolution import Gaussian2DKernel, convolve
 
 
 
@@ -993,6 +994,101 @@ def get_noise_grid(pk_noise,
 
 def dk(k, pk):
     return k **3 * pk/2.0/np.pi**2
+
+
+def make_grid_dnu_obs(grid,
+                      boxsize_x,
+                      boxsize_y,
+                      boxsize_z,
+                      ngrid_x,
+                      ngrid_y,
+                      ngrid_z,
+                      nu_obs,
+                      dnu_obs,
+                      line_name,
+                      theta_fwhm=None):
+    """
+    Generate a gridded cube of intensity fluctuations from a simulation box for a 
+    given frequency resolution.
+    
+    Parameters
+    ----------
+    grid : array_like
+        The 3D cube of intensity values in the simulation box. 
+        Shape should be (ngrid_x, ngrid_y, ngrid_z).
+    ngrid_x : int
+        Number of grid cells in the x-direction.
+    ngrid_y : int
+        Number of grid cells in the y-direction.
+    ngrid_z : int
+        Number of grid cells in the z-direction.
+    boxsize_x : float
+        Size of the simulation box in the x-direction in Mpc/h.
+    boxsize_y : float
+        Size of the simulation box in the y-direction in Mpc/h.
+    boxsize_z : float
+        Size of the simulation box in the z-direction in Mpc/h.
+    nu_obs : float
+        Observed frequency of an experiment in GHz.
+    dnu_obs : float
+        frequncy resolution in GHz.
+    line_name : str
+        Name of the emission line.
+    theta_fwhm : float, optional
+        Full width at half maximum of the telescope beam in arcminutes.
+        If not given, no beam convolution will be applied.
+    
+    Returns
+    -------
+    array_like
+        The 3D cube of convolved intensity fluctuations. 
+    """
+    
+    global zem, dz, dchi, d_ngrid 
+    
+    # Compute useful quantities
+    zem, dz, dchi, d_ngrid = box_freq_to_quantities(nu_obs=nu_obs,
+                                                       dnu_obs=dnu_obs,
+                                                       boxsize=boxsize_z,
+                                                       ngrid=ngrid_z,
+                                                       line_name=line_name)
+    
+    Ngrid_new = int(ngrid_z/d_ngrid) if d_ngrid < ngrid_z else 1
+    d_ngrid = min(d_ngrid, ngrid_z)
+    
+    if theta_fwhm is not None:
+        convolved_grid = []
+        theta = convert_beam_unit_to_radian(theta_fwhm, beam_unit= 'arcmin')
+        
+        for i in range(Ngrid_new):
+            grid_start = i * d_ngrid
+            grid_end = (i+1) * d_ngrid
+            z_start = zem + (i* dz)
+            print(grid_start, grid_end)
+            
+            beam_size = angle_to_comoving_size(z_start, theta)
+            beam_std = beam_size / (np.sqrt(8 * np.log10(2.0)))
+            gauss_kernel = Gaussian2DKernel(beam_std)
+            grid_quantity = np.mean(grid[:,:, grid_start: grid_end], axis =2)
+            
+            
+            convolved_grid_cal = convolve(grid_quantity, gauss_kernel)
+            convolved_grid.append(convolved_grid_cal)
+        
+
+        Igcal = np.swapaxes(convolved_grid, 0, 2)
+            
+        return Igcal
+        
+        
+    if theta_fwhm == None:
+        grid_split = np.split(grid, Ngrid_new, axis=2)
+        grid_mean = np.mean(grid_split, axis=3)
+        Igcal = np.swapaxes(grid_mean, 0, 2)
+        
+        return Igcal
+    
+
 
 
 
