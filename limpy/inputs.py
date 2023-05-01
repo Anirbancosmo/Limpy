@@ -162,6 +162,23 @@ default_L_CO_11_10_scatter_params = {
 }
 
 
+default_L_CO_12_11_scatter_params = {
+    "a_off": 0.51,
+    "a_std": 0.11,
+    "b_off": 7.50,
+    "b_std": 0.80,
+}
+
+
+default_L_CO_13_12_scatter_params = {
+    "a_off": 0.47,
+    "a_std": 0.20,
+    "b_off": 7.90,
+    "b_std": 1.50,
+}
+
+
+
 # dummy values to extend the SFR-Mhalo relation when halomass goes below M_min
 default_dummy_values = {"lcp_low": 1e-12}
 

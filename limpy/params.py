@@ -226,6 +226,19 @@ def line_scattered_params(line_name="CII158"):
         a_std = inp.default_L_CO_11_10_scatter_params["a_std"]
         b_off = inp.default_L_CO_11_10_scatter_params["b_off"]
         b_std = inp.default_L_CO_11_10_scatter_params["b_std"]
+        
+        
+    if line_name == "CO1211":
+        a_off = inp.default_L_CO_12_11_scatter_params["a_off"]
+        a_std = inp.default_L_CO_12_11_scatter_params["a_std"]
+        b_off = inp.default_L_CO_12_11_scatter_params["b_off"]
+        b_std = inp.default_L_CO_12_11_scatter_params["b_std"]
+        
+    if line_name == "CO1312":
+        a_off = inp.default_L_CO_13_12_scatter_params["a_off"]
+        a_std = inp.default_L_CO_13_12_scatter_params["a_std"]
+        b_off = inp.default_L_CO_13_12_scatter_params["b_off"]
+        b_std = inp.default_L_CO_13_12_scatter_params["b_std"]
 
     return a_off, a_std, b_off, b_std
 
