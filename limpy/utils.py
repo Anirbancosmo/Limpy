@@ -1067,7 +1067,7 @@ def make_grid_dnu_obs(grid,
             print(grid_start, grid_end)
             
             beam_size = angle_to_comoving_size(z_start, theta)
-            beam_std = beam_size / (np.sqrt(8 * np.log10(2.0)))
+            beam_std = beam_size / (np.sqrt(8 * np.log(2.0)))
             gauss_kernel = Gaussian2DKernel(beam_std)
             grid_quantity = np.mean(grid[:,:, grid_start: grid_end], axis =2)
             
