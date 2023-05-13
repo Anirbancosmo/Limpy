@@ -22,14 +22,14 @@ Cosmological Parameters
 line_params = {"line_name": "CII158"}
 
 cosmo_params = {
-    "h": 0.68,
-    "omega_lambda": 0.70,
-    "omgega_bh2": 0.02226,
+    "h": 0.6776,
+    "omega_lambda": 0.6889,
+    "omgega_bh2": 0.02242,
     "omgega_ch2": 0.11933,
-    "omega_mh2": 0.1433,
+    "omega_mh2": 0.14240,
     "omega_k": 0.0,
-    "tau": 0.054,
-    "ns": 0.97,
+    "tau": 0.056,
+    "ns": 0.9665,
     "sigma8": 0.81,
 }
 

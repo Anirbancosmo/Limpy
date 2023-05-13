@@ -72,21 +72,24 @@ class cosmo:
         Comoving distance transverse.
         """
         omega_k_abs = abs(self.ok)
-        D_H = self.c_in_mpc / (self.H0 * self.km_to_mpc) / self.h
+        D_H = self.c_in_mpc / (self.H0 * self.km_to_mpc) 
+        
+        D_H *= self.h
 
         D_c_int = lambda z: D_H / self.E_z(z)
-        D_c = si.quad(D_c_int, 0, z, limit=1000)[0]
+        D_c = si.quad(D_c_int, 0, z, limit=1000)[0] 
 
         if self.ok == 0:
             return D_c
         elif self.ok < 0:
             return D_H / np.sqrt(omega_k_abs) * np.sin(np.sqrt(omega_k_abs) * D_c / D_H)
         elif self.ok > 0:
-            return D_H * np.sinh(np.sqrt(self.ok) * D_c / D_H) / np.sqrt(self.ok)
-
+            return D_H * np.sinh(np.sqrt(self.ok) * D_c / D_H) / np.sqrt(self.ok) 
+        
+        
     def D_co(self, z):
         if np.isscalar(z):
-            return self.D_co_unvec(z)  # Mpc/h unit
+            return self.D_co_unvec(z)  # Mpc unit
         else:
             result_array = np.zeros(len(z))
             for i in range(len(z)):
@@ -99,7 +102,8 @@ class cosmo:
         Comoving distance transverse.
         """
         omega_k_abs = abs(self.ok)
-        D_H = self.c_in_mpc / (self.H0 * self.km_to_mpc) / self.h
+        D_H = self.c_in_mpc / (self.H0 * self.km_to_mpc)
+        D_H *= self.h 
 
         D_c_int = lambda z: D_H / self.E_z(z)
         D_c = si.quad(D_c_int, 0, z, limit=1000)[0]
@@ -121,6 +125,7 @@ class cosmo:
         else:
             return [self.D_co(zin) / (1 + zin) for zin in z]
 
+    
     def D_luminosity(self, z):
         """
         Angular diameter distance
