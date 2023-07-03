@@ -21,6 +21,8 @@ setup_kwargs = {
 'author': 'Anirban Roy', 
 'author_email': 'anirbanroy.personal@gmail.com', 
 'packages':['limpy'],
+'package_data': {'limpy': ['data/*.dat']},
+'include_package_data': True,
 'zip_safe': False, 
 'install_requires':['camb', 'colossus', 'astropy']}
 

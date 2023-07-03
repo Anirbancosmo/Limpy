@@ -35,9 +35,9 @@ small_h = p.cosmo.h
 #sfr_file_tng300 = data_path + "sfr_processed_TNG300-1.npz"
 #sfr_file_Behroozi19 = data_path + "sfr_Behroozi.dat"
 
-sfr_file_Behroozi19 = os.path.join(os.path.dirname(__file__), '../data', 'sfr_Behroozi.dat')
-sfr_file_tng100 = os.path.join(os.path.dirname(__file__), '../data', 'sfr_processed_TNG100-1.npz')
-sfr_file_tng300 = os.path.join(os.path.dirname(__file__), '../data', 'sfr_processed_TNG300-1.npz')
+sfr_file_Behroozi19 = os.path.join(os.path.dirname(__file__), 'data', 'sfr_Behroozi.dat')
+sfr_file_tng100 = os.path.join(os.path.dirname(__file__), 'data', 'sfr_processed_TNG100-1.npz')
+sfr_file_tng300 = os.path.join(os.path.dirname(__file__), 'data', 'sfr_processed_TNG300-1.npz')
 
 # read and interpolate Behroozi
 z, m, sfr_file = np.loadtxt(sfr_file_Behroozi19, unpack=True)
