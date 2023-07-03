@@ -1184,7 +1184,7 @@ def LCO10_prime_padmanabhan18(Mhalo, z):
 
 def LCII_Lagache18(Mhalo, z, sfr_model="Behroozi19"):
     """
-    Luminosity of CII158 based on padmanabhan18 model.
+    Luminosity of CII158 based on Lagache18 model.
 
     parameters
     ----------
@@ -1206,6 +1206,36 @@ def LCII_Lagache18(Mhalo, z, sfr_model="Behroozi19"):
     sfr_out = mhalo_to_sfr(Mhalo, z, sfr_model=sfr_model)
     factor = (1.4 - 0.07 * z) * np.log10(sfr_out) + 7.1 - 0.07 * z
     return 10**factor
+
+
+def LCII_Lagache18_metal(Mhalo, z, zg=8.8, sfr_model="Behroozi19"):
+    """
+    Luminosity of CII158 based on padmanabhan18 model.
+
+    parameters
+    ----------
+    M
+        Mass of halos in Msun/h
+
+    z
+        Redshift of halos.
+
+    sfr_model
+        star formation rate model.
+
+    Returns
+    -------
+    Luminosity of CII158 line in Lsun unit.
+
+    """
+
+    sfr_out = mhalo_to_sfr(Mhalo, z, sfr_model=sfr_model)
+    factor = 7.0 + 1.2 * np.log10(sfr_out) + 0.021 * np.log10(zg) + 0.012 * np.log10(sfr_out) * np.log10(zg) - 0.74*(np.log10(zg))**2
+    
+    return 10**factor
+
+
+
 
 
 def LCII_Schaerer20(Mhalo, z, sfr_model="Behroozi19"):
@@ -1546,6 +1576,7 @@ def mhalo_to_lcp_fit(
     sfr_model="Behroozi19",
     use_scatter=False,
     params_fisher=None,
+    zg = 8.8,
 ):
     if (
         model_name == "Silva15-m1"
@@ -1566,6 +1597,9 @@ def mhalo_to_lcp_fit(
 
     if model_name == "Lagache18":
         LCII = LCII_Lagache18(Mhalo, z, sfr_model=sfr_model)
+        
+    if model_name == "Lagache18-metal":
+        LCII = LCII_Lagache18_metal(Mhalo, z, zg = zg, sfr_model=sfr_model)
 
     if model_name == "Schaerer20":
         LCII = LCII_Schaerer20(Mhalo, z, sfr_model=sfr_model)
@@ -1667,6 +1701,7 @@ def mhalo_to_lline(
     use_scatter=False,
     params_fisher=None,
     f_duty=0.1,
+    zg = 8.8,
 ):
 
     if line_name == "CII158":
@@ -1678,6 +1713,8 @@ def mhalo_to_lline(
             sfr_model=sfr_model,
             use_scatter=use_scatter,
             params_fisher=params_fisher,
+            zg = zg
+            
         )
 
     elif line_name[0:2] == "CO":
@@ -2080,6 +2117,7 @@ def calc_luminosity(
     use_scatter=False,
     halocat_type="input_cat",
     params_fisher=None,
+    zg = 8.8
 ):
     halomass, halo_cm = lu.make_halocat(
         halocat_file, halocat_type=halocat_type, mmin=halo_cutoff_mass, boxsize=boxsize
@@ -2092,6 +2130,7 @@ def calc_luminosity(
         line_name=line_name,
         use_scatter=use_scatter,
         params_fisher=params_fisher,
+        zg= zg
     )
 
     grid = lu.make_grid(halo_cm, weight=lum_line, boxsize=boxsize, ngrid=ngrid)
@@ -2115,6 +2154,7 @@ def calc_quantity(
     nproj=None,
     use_scatter=False,
     params_fisher=None,
+    zg = 8.8,
 ):
 
     lum_line = mhalo_to_lline(
@@ -2124,6 +2164,7 @@ def calc_quantity(
         use_scatter=use_scatter,
         line_name=line_name,
         params_fisher=params_fisher,
+        zg = zg
     )
 
     if quantity == "intensity":
@@ -2159,6 +2200,7 @@ def make_quantity_grid(
     use_scatter=False,
     halocat_type="input_cat",
     params_fisher=None,
+    zg = 8.8
 ):
     cellsize = boxsize / ngrid
     # nu_line=p.nu_rest(line_name=line_name)*p.Ghz_to_hz
@@ -2180,6 +2222,7 @@ def make_quantity_grid(
         use_scatter=use_scatter,
         line_name=line_name,
         params_fisher=params_fisher,
+        zg =zg
     )
     # if(quantity=='intensity' or quantity=='Inetnsity' or quantity=='I'):
     #    print("debugging")
@@ -2225,6 +2268,7 @@ def make_quantity_rectangular_grid(
     boxsize_y=None,
     boxsize_z=None,
     params_fisher=None,
+    zg = 8.8
 ):
     # global lum_line, halomass_cut
     cellsize_x = boxsize_x / ngrid_x
@@ -2250,6 +2294,7 @@ def make_quantity_rectangular_grid(
         use_scatter=use_scatter,
         line_name=line_name,
         params_fisher=params_fisher,
+        zg = zg
     )
     # if(quantity=='intensity' or quantity=='Inetnsity' or quantity=='I'):
     #    print("debugging")
@@ -2308,6 +2353,7 @@ def make_quantity_rectangular_grid_NO_Z_EVO(
     nu_obs = None,
     dnu_obs = None,
     params_fisher=None,
+    zg = 8.8
 ):
 
     if (dnu_obs is not None):
@@ -2343,7 +2389,8 @@ def make_quantity_rectangular_grid_NO_Z_EVO(
                 boxsize_x= boxsize_x,
                 boxsize_y= boxsize_y,
                 boxsize_z= boxsize_z,
-                params_fisher= params_fisher)
+                params_fisher= params_fisher,
+                zg = zg)
 
     return Igcal
 
@@ -2368,6 +2415,7 @@ def make_quantity_rectangular_grid_z_evo(
     nu_obs = None,
     dnu_obs = None,
     params_fisher=None,
+    zg = 8.8
 ):
 
     if (dnu_obs is not None):
@@ -2436,6 +2484,7 @@ def make_quantity_rectangular_grid_z_evo(
                     use_scatter=use_scatter,
                     line_name=line_name,
                     params_fisher=params_fisher,
+                    zg = zg
                 )
 
         grid_lum = lu.make_grid_rectangular(
@@ -2482,7 +2531,8 @@ def make_intensity_grid(
     dnu_obs = None,
     theta_fwhm  = None,
     z_evolution = False,
-    params_fisher= []):
+    params_fisher= [],
+    zg = 8.8):
 
     if z_evolution == False:
          Igcal = make_quantity_rectangular_grid_NO_Z_EVO(
@@ -2503,7 +2553,8 @@ def make_intensity_grid(
                 boxsize_z= boxsize_z,
                 nu_obs = nu_obs,
                 dnu_obs = dnu_obs,
-                params_fisher= params_fisher)
+                params_fisher= params_fisher,
+                zg = zg)
 
     elif z_evolution == True:
         Igcal = make_quantity_rectangular_grid_z_evo(
@@ -2524,7 +2575,8 @@ def make_intensity_grid(
                 boxsize_z= boxsize_z,
                 nu_obs = nu_obs,
                 dnu_obs = dnu_obs,
-                params_fisher= params_fisher)
+                params_fisher= params_fisher,
+                zg = zg)
 
 
     if theta_fwhm == None:
@@ -2582,6 +2634,7 @@ def make_quantity_rectangular_grid_cal(
     dnu_obs = None,
     redshift_evolution = False,
     params_fisher=None,
+    zg = 8.8
 ):
     # global lum_line, halomass_cut
     cellsize_x = boxsize_x / ngrid_x
@@ -2645,6 +2698,7 @@ def make_quantity_rectangular_grid_cal(
                         use_scatter=use_scatter,
                         line_name=line_name,
                         params_fisher=params_fisher,
+                        zg = zg
                     )
 
             grid_lum = lu.make_grid_rectangular(

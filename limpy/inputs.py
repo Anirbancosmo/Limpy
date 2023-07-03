@@ -44,7 +44,7 @@ code_params = {"use_scatter": False, "use_pk": "linear"}  # or nonlinear
 Astrophysical Parameters
 """
 astro_params = {
-    "Mmin": 1e10,
+    "Mmin": 1e8,
     "Mmax": 1e19,
     "Lsun": 3.828e26,  # watts
     "delta_c": 1.68,
