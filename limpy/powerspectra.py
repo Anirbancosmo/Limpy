@@ -66,7 +66,7 @@ def get_fourier_k(Lx, Ly, Lz, Nx, Ny, Nz, fourier_method="half"):
 
 
 def get_binned_pk(
-    X_grid, Lx, Ly, Lz, Nx, Ny, Nz, Y_grid=None, weight_array=None, nbins=20, kbins=None
+    X_grid, Lx, Ly, Lz, Nx, Ny, Nz, Y_grid=None, weight_array=None, nbins=20, kbins=None, get_error = False,
 ):
     r"""
     Returns the Fourier frequencies.
@@ -141,7 +141,15 @@ def get_binned_pk(
         kgrid.flatten(), power.flatten(), statistic="mean", bins=kbins
     )
     del kgrid
-    return kbins[:-1], Pbins
+    
+    if get_error == False:
+        return kbins[:-1], Pbins
+    
+    if get_error == True:
+        Pbins_variance, _, _ = stats.binned_statistic(
+        kgrid.flatten(), power.flatten(), statistic="std", bins=kbins)
+        return kbins[:-1], Pbins, Pbins_varianced
+        
 
 
 def get_pk3d(
@@ -156,6 +164,7 @@ def get_pk3d(
     weight_array=None,
     nbins=20,
     kbins=None,
+    get_error =False
 ):
     r"""
     Returns the Fourier frequencies.
@@ -241,12 +250,19 @@ def get_pk3d(
     Pbins, _, _ = stats.binned_statistic(
         kgrid.flatten(), power.flatten(), statistic="mean", bins=kbins
     )
-    del kgrid
+    
+    if get_error == False:
+        return kbins[:-1], Pbins
+    
+    if get_error == True:
+        Pbins_variance, _, _ = stats.binned_statistic(
+        kgrid.flatten(), power.flatten(), statistic="std", bins=kbins)
+        return kbins[:-1], Pbins, Pbins_variance
 
-    return kbins[:-1], Pbins
+    
 
 
-def get_pk2d(X_grid, Lx, Ly, Nx, Ny, Y_grid=None, weight_array=None, kbins=None):
+def get_pk2d(X_grid, Lx, Ly, Nx, Ny, Y_grid=None, weight_array=None, kbins=None, get_error = False):
     r"""
     Returns the Fourier frequencies.
 
@@ -327,13 +343,20 @@ def get_pk2d(X_grid, Lx, Ly, Nx, Ny, Y_grid=None, weight_array=None, kbins=None)
         kgrid.flatten(), power.flatten(), statistic="mean", bins=kbins
     )
 
-    return kbins[1:], Pbins
+    if get_error == False:
+        return kbins[:-1], Pbins
+    
+    if get_error == True:
+        Pbins_variance, _, _ = stats.binned_statistic(
+        kgrid.flatten(), power.flatten(), statistic="std", bins=kbins)
+        return kbins[:-1], Pbins, Pbins_variance**2
 
 
 
 
 
-def get_pk_mu_nu(X_grid, Lx, Ly, Lz, Nx, Ny, Nz, modes="parallel", line_name="CII", nu_obs=None, dnu=None, Y_grid=None, weight_array=None, nbins=20, kbins=None ):
+
+def get_pk_mu_nu(X_grid, Lx, Ly, Lz, Nx, Ny, Nz, modes="parallel", line_name="CII", nu_obs=None, dnu=None, Y_grid=None, weight_array=None, nbins=20, kbins=None, get_error = False):
     r"""
     Returns the Fourier frequencies.
 
@@ -427,7 +450,14 @@ def get_pk_mu_nu(X_grid, Lx, Ly, Lz, Nx, Ny, Nz, modes="parallel", line_name="CI
     
     Pbins, _, _ = stats.binned_statistic(kgrid_new.flatten(), power_new.flatten(), statistic = "mean", bins = kbins)
     
-    return kcen, Pbins
+    if get_error == False:
+        return kcen, Pbins
+    
+    if get_error == True:
+        Pbins_variance, _, _ = stats.binned_statistic(
+        kgrid_new.flatten(), power_new.flatten(), statistic="std", bins=kbins)
+     
+        return kcen, Pbins, Pbins_variance
 
 
 
@@ -447,6 +477,7 @@ def get_pk_perp_para(
     nbins=20,
     k_para_bins=None,
     k_perp_bins=None,
+    get_error =False
 ):
     r"""
     Returns the Fourier frequencies.
@@ -544,7 +575,24 @@ def get_pk_perp_para(
         bins=[k_para_bins, k_perp_bins],
     )
     Pgrid = result.statistic
-    return k_para_bins, k_perp_bins, np.nan_to_num(Pgrid, nan=0.0)
+            
+            
+    if get_error == False:
+        return k_para_bins, k_perp_bins, np.nan_to_num(Pgrid, nan=0.0)
+    
+    if get_error == True:
+        result = stats.binned_statistic_2d(
+        kgrid_para.flatten(),
+        kgrid_perp.flatten(),
+        power_array.flatten(),
+        statistic="std",
+        bins=[k_para_bins, k_perp_bins],
+    )
+         
+        Pgrid_variance = result.statistic
+       
+        return k_para_bins, k_perp_bins, np.nan_to_num(Pgrid, nan=0.0), np.nan_to_num(Pgrid_variance, nan=0.0)
+    
 
 
 def plot_pk_para_perp(pk_grid, k_para, k_perp, kscale="log", vmin=None, vmax=None):
@@ -698,7 +746,6 @@ def pk_error(k, pk_signal, pk_noise, Vsurv, noise_prop = "SN", bin_num = 10, bin
         var = (pknoise_int) ** 2 / Nmodes
 
     return k_cen, pksignal_int, np.sqrt(var)
-
 
 def getindep(nx, ny, nz):
     indep = np.full((nx, ny, int(nz / 2) + 1), False, dtype=bool)
