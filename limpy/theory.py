@@ -8,8 +8,6 @@ Created on Mon Jul 20 10:55:42 2022
 
 import numpy as np
 from scipy.integrate import simps
-
-# from scipy.interpolate import interp1d
 from scipy.special import erf
 
 import limpy.lines as ll
@@ -123,7 +121,6 @@ def T_line(
     line_name="CII158",
     sfr_model="Silva15",
     model_name="Silva15-m1",
-    fduty=1.0,
     HOD_model=False,
 ):
     Intensity = I_line(
@@ -177,7 +174,6 @@ def b_line(
 def Pk_line(
     k,
     z,
-    fduty=1.0,
     line_name="CII158",
     label="total",
     sfr_model="Silva15",
