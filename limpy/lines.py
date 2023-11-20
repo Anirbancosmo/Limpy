@@ -11,7 +11,7 @@ import os.path
 from astropy.convolution import Gaussian2DKernel, convolve
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-# from astropy.modeling.models import Gaussian2D
+#from astropy.modeling.models import Gaussian2D
 from scipy.interpolate import RectBivariateSpline
 
 import limpy.params as p
@@ -393,17 +393,17 @@ def L_CII158_Visbal10(M, z, f_duty=0.1, sfr_model=None):
 
     M= M / small_h #Msun
     R = 6e6
-    if sfr_model != None:
+    
+    if sfr_model != "Visbal10":
         sfr_out = mhalo_to_sfr(M, z, sfr_model=sfr_model)
-        L = R * sfr_out
+        L = R * sfr_out * f_duty
 
-    else:
-        fstar = 0.1
-        L = 6.6e6 * (R / 3.8e6) * (M / 1e10) * ((1 + z) / 7) ** 1.5 * (fstar / f_duty)
+    elif sfr_model == "Visbal10":
+        L = 6.6e6 * (R / 3.8e6) * (M / 1e10) * ((1 + z) / 7) ** 1.5 * f_duty
     return L
 
 
-def L_CO_Visbal10(M, z, f_duty=0.1, J_ladder=1, sfr_model=None):
+def L_CO_Visbal10(M, z, f_duty=0.1, J_ladder=1, sfr_model="Visbal10"):
     """
     CO j-transitions line luminosity model of Visbal10.
     Arxiv: https://arxiv.org/abs/1008.3178v2
@@ -444,14 +444,14 @@ def L_CO_Visbal10(M, z, f_duty=0.1, J_ladder=1, sfr_model=None):
 
     R = R_array[J_ladder-1]
     #print("J ladder is", R)
-
-    if sfr_model != None:
+        
+    
+    if sfr_model != "Visbal10":
         sfr_out = mhalo_to_sfr(M, z, sfr_model=sfr_model)
         L = R * sfr_out
-
-    else:
-        fstar = 0.1
-        L = 6.6e6 * (R / 3.8e6) * (M / 1e10) * ((1 + z) / 7) ** 1.5 * (fstar / f_duty)
+        
+    elif sfr_model == "Visbal10":
+    	L = 6.6e6 * (R / 3.8e6) * (M / 1e10) * ((1 + z) / 7) ** 1.5 * f_duty
 
     return L
 
@@ -483,13 +483,12 @@ def L_NII205_Visbal10(M, z, f_duty=0.1, sfr_model=None):
 
     R = 2.5e5
 
-    if sfr_model != None:
+    if sfr_model != "Visbal10":
         sfr_out = mhalo_to_sfr(M, z, sfr_model=sfr_model)
         L = R * sfr_out
 
-    else:
-        fstar = 0.1
-        L = 6.6e6 * (R / 3.8e6) * (M / 1e10) * ((1 + z) / 7) ** 1.5 * (fstar / f_duty)
+    elif sfr_model == "Visbal10":
+        L = 6.6e6 * (R / 3.8e6) * (M / 1e10) * ((1 + z) / 7) ** 1.5 *  f_duty
 
     return L
 
@@ -521,13 +520,12 @@ def L_NII122_Visbal10(M, z, f_duty=0.1, sfr_model=None):
 
     R = 7.9e5
 
-    if sfr_model != None:
+    if sfr_model != "Visbal10":
         sfr_out = mhalo_to_sfr(M, z, sfr_model=sfr_model)
         L = R * sfr_out
 
-    else:
-        fstar = 0.1
-        L = 6.6e6 * (R / 3.8e6) * (M / 1e10) * ((1 + z) / 7) ** 1.5 * (fstar / f_duty)
+    elif sfr_model == "Visbal10":
+        L = 6.6e6 * (R / 3.8e6) * (M / 1e10) * ((1 + z) / 7) ** 1.5 *  f_duty
     return L
 
 
@@ -557,13 +555,12 @@ def L_CI610_Visbal10(M, z, f_duty=0.1, sfr_model=None):
 
     R = 1.4e4
 
-    if sfr_model != None:
+    if sfr_model != "Visbal10":
         sfr_out = mhalo_to_sfr(M, z, sfr_model=sfr_model)
         L = R * sfr_out
 
-    else:
-        fstar = 0.1
-        L = 6.6e6 * (R / 3.8e6) * (M / 1e10) * ((1 + z) / 7) ** 1.5 * (fstar / f_duty)
+    elif sfr_model == "Visbal10":
+        L = 6.6e6 * (R / 3.8e6) * (M / 1e10) * ((1 + z) / 7) ** 1.5 *  f_duty
     return L
 
 
@@ -595,12 +592,12 @@ def L_CI371_Visbal10(M, z, f_duty=0.1, sfr_model=None):
     fstar = 0.1
     R = 4.8e4
 
-    if sfr_model != None:
+    if sfr_model != "Visbal10":
         sfr_out = mhalo_to_sfr(M, z, sfr_model=sfr_model)
         L = R * sfr_out
 
-    else:
-        L = 6.6e6 * (R / 3.8e6) * (M / 1e10) * ((1 + z) / 7) ** 1.5 * (fstar / f_duty)
+    elif sfr_model == "Visbal10":
+        L = 6.6e6 * (R / 3.8e6) * (M / 1e10) * ((1 + z) / 7) ** 1.5 *  f_duty
     return L
 
 
@@ -632,12 +629,12 @@ def L_OIII88_Visbal10(M, z, f_duty=0.1, sfr_model=None):
     fstar = 0.1
     R = 2.3e6
 
-    if sfr_model != None:
+    if sfr_model != "Visbal10":
         sfr_out = mhalo_to_sfr(M, z, sfr_model=sfr_model)
         L = R * sfr_out
 
-    else:
-        L = 6.6e6 * (R / 3.8e6) * (M / 1e10) * ((1 + z) / 7) ** 1.5 * (fstar / f_duty)
+    elif sfr_model == "Visbal10":
+        L = 6.6e6 * (R / 3.8e6) * (M / 1e10) * ((1 + z) / 7) ** 1.5 * f_duty
     return L
 
 
@@ -990,7 +987,7 @@ def L_lines_Thesan(M, z, line_name="OIII88", sfr_model="Behroozi19"):
     return 10**L
 
 
-def L_line_Visbal10(M, z, f_duty=0.1, line_name="CO10", sfr_model=None):
+def L_line_Visbal10(M, z, f_duty=0.1, line_name="CO10", sfr_model= "Visbal10"):
     """
     Return the luminosity for many different lines based on Visbal10 model.
     Arxiv:  https://arxiv.org/pdf/2111.02411.pdf
@@ -1032,7 +1029,7 @@ def L_line_Visbal10(M, z, f_duty=0.1, line_name="CO10", sfr_model=None):
             J_ladder = int(line_name[2:4])
 
         L_line = L_CO_Visbal10(
-            M, z, f_duty=f_duty, sfr_model=sfr_model, J_ladder=J_ladder
+            M, z, f_duty=f_duty, sfr_model=sfr_model, J_ladder=J_ladder,
         )
 
     if line_name == "CII158":
@@ -1629,7 +1626,7 @@ def mhalo_to_lco_fit(
 ):
 
     if model_name == "Visbal10":
-        L_line = L_line_Visbal10(Mhalo, z, f_duty=f_duty, line_name=line_name)
+        L_line = L_line_Visbal10(Mhalo, z, f_duty=f_duty, line_name=line_name, sfr_model=sfr_model)
 
     if model_name == "Padmanabhan18":
         L_line = LCO_Padmanabhan18(Mhalo, z, line_name=line_name)
