@@ -148,7 +148,7 @@ def get_binned_pk(
     if get_error == True:
         Pbins_variance, _, _ = stats.binned_statistic(
         kgrid.flatten(), power.flatten(), statistic="std", bins=kbins)
-        return kbins[:-1], Pbins, Pbins_varianced
+        return kbins[:-1], Pbins, Pbins_variance
         
 
 
@@ -764,3 +764,4 @@ def getindep(nx, ny, nz):
     indep[0, int(ny / 2), int(nz / 2)] = True
     indep[int(nx / 2), int(ny / 2), int(nz / 2)] = True
     return indep
+

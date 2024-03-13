@@ -9,36 +9,42 @@ from colossus.lss import bias, mass_function
 import limpy.inputs as inp
 
 class cosmo:
-    def __init__(self, h=inp.h, omega_lambda=inp.omega_lambda, omega_b=inp.omega_b,
-                 omega_m=inp.omega_m, tau=inp.tau, ns=inp.ns, sigma_8=inp.sigma_8, 
-                 halo_model=inp.halo_model, halo_mass_def=inp.halo_mass_def, M_min=inp.M_min, M_max=inp.M_max,
-                 delta_c=inp.delta_c, bias_model=inp.bias_model, bias_mass_def=inp.bias_mass_def):
+    def __init__(self, parameters=None):
         
+        if parameters is None:
+            parameters = inp.parameters_default 
+        else:
+            parameters = {**inp.parameters_default, **parameters}
+            
         # Initialize cosmological parameters with inputs
-        self.h = h
-        self.omega_lambda = omega_lambda
-        self.omega_b = omega_b
-        self.omega_m = omega_m
-        self.omega_cdm = (omega_m- omega_b)
-        self.ns = ns
-        self.sigma_8 = sigma_8
+        self.h = parameters['h']
+        self.omega_lambda = parameters['omega_lambda']
+        self.omega_b = parameters['omega_b']
+        self.omega_m = parameters['omega_m']
+        self.omega_cdm = self.omega_m - self.omega_b
+        self.ns = parameters['ns']
+        self.sigma_8 = parameters['sigma_8']
 
         self.H_0 = 100 * self.h  # Km/S/Mpc
 
         # Handle omega_k separately
-        self.omega_k = 1 - (omega_m + omega_lambda)
-        
+        self.omega_k = 1 - (self.omega_m + self.omega_lambda)
+
         # Handle astrophysical parameters using variable names
-        self.M_min = M_min
-        self.M_max = M_max
-        self.delta_c = delta_c
-        self.halo_model = halo_model
-        self.halo_mass_def = halo_mass_def
-        self.bias_model = bias_model
-        self.bias_mass_def = bias_mass_def
+        self.M_min = parameters['M_min']
+        self.M_max = parameters['M_max']
+        self.delta_c = parameters['delta_c']
+        self.halo_model = parameters['halo_model']
+        self.halo_mass_def = parameters['halo_mass_def']
+        self.bias_model = parameters['bias_model']
+        self.bias_mass_def = parameters['bias_mass_def']
         
         #Initialize cosmological parameters for colossus
         #set_cosmo = self.set_cosmo_colossus()
+        
+        print("<---Parameters used in cosmo.py--->:")
+        print("Hubble constant (h):", self.h)
+        print("Omega matter (Omega_m):", self.omega_m)
 
     def E_z(self, z):
         return np.sqrt(self.omega_m * (1 + z) ** 3 + self.omega_k * (1 + z) ** 2 + self.omega_lambda)
@@ -139,7 +145,7 @@ class cosmo:
         pars = camb.CAMBparams()
         pars.set_cosmology(
             H0=100 * self.h, ombh2=self.omega_b * self.h**2, omch2=self.omega_cdm * self.h**2,
-            omk= self.omega_ks
+            omk= self.omega_k
             
         )
         pars.InitPower.set_params(ns=self.ns)
@@ -162,16 +168,22 @@ class cosmo:
             "sigma8": self.sigma_8,
             "ns": self.ns,
         }
-        col_cosmology.addCosmology("myCosmo", params)
-        self.cosmo_col = col_cosmology.setCosmology("myCosmo")
-        
+        #col_cosmology.addCosmology("myCosmo", params)
+        #elf.cosmo_col = col_cosmology.setCosmology("myCosmo")
+        return params
 
     
     def hmf_setup(
         self, z, q_out="dndlnM",
         halo_model=None,
-        mdef=None, set_colossus_cosmology=True,
+        mdef=None,
     ):
+
+        params= self.set_cosmo_colossus()
+        
+        col_cosmology.addCosmology("myCosmo", params)
+        self.cosmo_col = col_cosmology.setCosmology("myCosmo")
+        
         
         if halo_model is None:
             halo_model = self.halo_model
@@ -180,8 +192,11 @@ class cosmo:
             mdef = self.halo_mass_def
             
         Mh = 10 ** (
-            np.linspace(np.log10(self.M_min), np.log10(self.M_max), num=200)
-        )  # M_sun/h unit
+            np.linspace(np.log10(self.M_min), np.log10(self.M_max), num=2000))
+        #  # M_sun/h unit
+        
+        #Mh = np.logspace(np.log10(self.M_min), np.log10(self.M_max), num=2000)
+       
 
         mfunc = mass_function.massFunction(
             Mh, z, mdef=mdef, model=halo_model, q_out=q_out
@@ -411,7 +426,3 @@ class cosmo:
         y = lambda_line * (1 + self.z) ** 2 / self.H_z(self.z)
         res = self.D_co(self.z) ** 2 * y * (theta_rad) ** 2 * delta_nu
         return res  # (Mpc/h)^3
-    
-    
-    
-    

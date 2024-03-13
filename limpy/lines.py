@@ -1396,7 +1396,7 @@ def Lline_delooze14(Mhalo, z, line_name="CII158", sfr_model="Behroozi19"):
 ################################################################################
 
 
-def sfr_to_L_line_alma(z, sfr, line_name="CII158", line_params=None):
+def sfr_to_L_line_alma(z, sfr, line_name="CII158", parameters=None):
     """
     Calculates luminosity of the OIII lines from SFR assuming a 3\sigma Gaussian
     scatter. The parameter values for the scattered relation
@@ -1411,20 +1411,19 @@ def sfr_to_L_line_alma(z, sfr, line_name="CII158", line_params=None):
     if line_name not in lu.line_list:
         raise ValueError("Not a familiar line.")
 
-    # Get default parameters if line_params is not provided
-    if line_params is None:
-        line_params = lu.line_scattered_params_alma(line_name)
-        a_off = line_params['a_off']
-        b_off = line_params['b_off']
+    if parameters is None:
+        parameters = lu.line_scattered_params_alma(line_name)
+        a_off = parameters['a_off']
+        b_off = parameters['b_off']
     
     
     else:
-        # Merge line_params with default parameters
         defaults = lu.line_scattered_params_alma(line_name)
-        line_params = {**defaults, **line_params}
-        a_off = line_params['a_off']
-        b_off = line_params['b_off']
-
+        new_params = {**defaults, **parameters}
+        a_off = new_params['a_off']
+        b_off = new_params['b_off']
+        
+    print(a_off, b_off)
     # Function to calculate L_CO_log
     def L_co_log(sfr, alpha, beta):
         nu_co_line = inp.nu_rest(line_name)
@@ -1452,7 +1451,7 @@ def mhalo_to_lline_alma(
     z,
     line_name="CII158",
     sfr_model="Behroozi19",
-    line_params=None
+    parameters=None
 ):
     """
     This function returns luminosity of lines (following the input line_name) in the unit of L_sun.
@@ -1469,7 +1468,7 @@ def mhalo_to_lline_alma(
         z,
         sfr_cal,
         line_name=line_name,
-        line_params=line_params
+        parameters = parameters
     )
 
     return L_line
@@ -1480,7 +1479,7 @@ def mhalo_to_lcp_fit(
     z,
     model_name="Silva15-m1",
     sfr_model="Behroozi19",
-    line_params=inp.line_params_default
+    parameters=inp.parameters_default
 ):
     if (
         model_name == "Silva15-m1"
@@ -1503,7 +1502,7 @@ def mhalo_to_lcp_fit(
         LCII = LCII_Lagache18(Mhalo, z, sfr_model=sfr_model)
         
     if model_name == "Lagache18-metal":
-        LCII = LCII_Lagache18_metal(Mhalo, z, zg = line_params['zg'], sfr_model=sfr_model)
+        LCII = LCII_Lagache18_metal(Mhalo, z, zg = parameters['zg'], sfr_model=sfr_model)
 
     if model_name == "Schaerer20":
         LCII = LCII_Schaerer20(Mhalo, z, sfr_model=sfr_model)
@@ -1514,7 +1513,7 @@ def mhalo_to_lcp_fit(
             z,
             line_name="CII158",
             sfr_model=sfr_model,
-            line_params=line_params
+            parameters=parameters
         )
 
     return LCII
@@ -1601,7 +1600,7 @@ def mhalo_to_lline(
     line_name="CII158",
     model_name="Silva15-m1",
     sfr_model="Behroozi19",
-    line_params=inp.line_params_default
+    parameters=inp.parameters_default
 ):
 
     if line_name == "CII158":
@@ -1611,14 +1610,14 @@ def mhalo_to_lline(
             z,
             model_name=model_name,
             sfr_model=sfr_model,
-            line_params=line_params
+            parameters=parameters
             
         )
 
     elif line_name[0:2] == "CO":
         L_line = mhalo_to_lco_fit(
             Mhalo, z, line_name=line_name, sfr_model =sfr_model,
-            model_name=model_name, f_duty=line_params['f_duty']
+            model_name=model_name, f_duty=parameters['f_duty']
         )
 
     elif line_name == "OIII88":
@@ -1628,7 +1627,7 @@ def mhalo_to_lline(
             line_name=line_name,
             sfr_model=sfr_model,
             model_name=model_name,
-            f_duty=line_params['f_duty'],
+            f_duty=parameters['f_duty'],
         )
 
     else:
@@ -1721,33 +1720,33 @@ def calc_luminosity(
 
             
 class line_modeling:
-    def __init__(self, Mhalo, z, line_name="CII158", 
+    def __init__(self, line_name="CII158", 
                  model_name="Silva15-m1", 
                  sfr_model="Behroozi19", 
-                 line_params=None):
+                 parameters=None):
         
-        if line_params is None:
+        if parameters is None:
             # Assuming line parameters are already imported from input.py outside the class
             
-            self.line_params = inp.line_params_default
+            self.parameters = inp.parameters_default 
         
         else:
             # Fill in missing parameters with defaults from input.py
             
-            self.line_params = {**inp.line_params_default, **line_params}
+            self.parameters = {**inp.parameters_default, **parameters}
 
         self.line_name = line_name
         self.model_name = model_name
         self.sfr_model = sfr_model
-        self.use_scatter = self.line_params['use_scatter']
-        self.a_off = self.line_params['a_off']
-        self.a_std = self.line_params['a_std']
-        self.b_off = self.line_params['b_off']
-        self.b_std = self.line_params['b_std']
-        self.f_duty = self.line_params['f_duty']
-        self.zg = self.line_params['zg']
-        self.scatter_dex = self.line_params['scatter_dex']
-        self.cov_scatter_matrix = self.line_params['cov_scatter_matrix']
+        self.use_scatter = self.parameters['use_scatter']
+        self.a_off = self.parameters['a_off']
+        self.a_std = self.parameters['a_std']
+        self.b_off = self.parameters['b_off']
+        self.b_std = self.parameters['b_std']
+        self.f_duty = self.parameters['f_duty']
+        self.zg = self.parameters['zg']
+        self.scatter_dex = self.parameters['scatter_dex']
+        self.cov_scatter_matrix = self.parameters['cov_scatter_matrix']
         
         
     def line_luminosity(self, Mhalo, z):
@@ -1758,7 +1757,7 @@ class line_modeling:
                 line_name=self.line_name,
                 model_name=self.model_name,
                 sfr_model=self.sfr_model,
-                line_params=self.line_params
+                parameters=self.parameters
             )
         
         elif self.use_scatter and self.model_name != "alma_scalling":
@@ -1768,7 +1767,7 @@ class line_modeling:
                 line_name=self.line_name,
                 model_name=self.model_name,
                 sfr_model=self.sfr_model,
-                line_params=self.line_params
+                parameters=self.parameters
                 
             )
             line_with_scatter = Line_lum + Line_lum * self.scatter_dex * np.random.normal(0, 1, len(Line_lum))
@@ -1791,7 +1790,7 @@ class line_modeling:
                     z,
                     line_name=self.line_name,
                     sfr_model=self.sfr_model,
-                    line_params={'a_off': params_list[:,0][i], 'b_off': params_list[:,1][i]}
+                    parameters={'a_off': params_list[:,0][i], 'b_off': params_list[:,1][i]}
                 )
                 result.append(line_with_scatter)
             
@@ -1799,233 +1798,10 @@ class line_modeling:
 
             
 
-
-
-
-class theory:
-    def __init__(self, cosmo_setup=cosmos.cosmo()):
-        
-        self.cosmo_setup = cosmo_setup
-        
-        print("Parameters used in cosmo_setup:")
-        print("Hubble constant (h):", self.cosmo_setup.h)
-        print("Omega matter (Omega_m):", self.cosmo_setup.omega_m)
-        
-        
-    def N_cen(self, M, M_min=1e8, sigma_logm=0.15):
-        res = 0.5 * (1 + erf((np.log10(M) - np.log10(M_min)) / sigma_logm))
-        return res
-
-    def N_sat(self, M, M_cut=10**12.23, M1=10**12.75, alpha_g=0.99):
-        if np.isscalar(M):
-            res = 0.0 if M <= M_cut else self.N_cen(M) * ((M - M_cut) / M1) ** alpha_g
-        else:
-            below_M_cut = np.where(M < M_cut)[0]
-            above_M_cut = np.where(M >= M_cut)[0]
-            res = np.zeros(len(M))
-            res[below_M_cut] = 0.0
-            res[above_M_cut] = self.N_cen(M[above_M_cut]) * ((M[above_M_cut] - M_cut) / M1) ** alpha_g
-        return res
-
-    def N_M_hod(self, Mh):
-        return (self.N_sat(Mh) + 1) * self.N_cen(Mh)
-
-    def hmf(self, z, HOD_model=False):
-        Mass_bin, dndm = self.cosmo_setup.hmf_setup(z)
-        if HOD_model:
-            return Mass_bin, dndm * self.N_M_hod(Mass_bin)
-        else:
-            return Mass_bin, dndm
-
-    def I_line(self, z, line_name="CII158", model_name="Silva15-m1", sfr_model="Silva15", HOD_model=False, params_fisher=None):
-        mass_bin, dndlnM = self.hmf(z, HOD_model=HOD_model)
-        L_line = ll.mhalo_to_lline(mass_bin, z, line_name=line_name, sfr_model=sfr_model, model_name=model_name, params_fisher=params_fisher)
-        factor = (inp.c_in_mpc) / (4 * np.pi * inp.nu_rest(line_name=line_name) * self.cosmo_setup.H_z(z))
-        conversion_fac = 4.0204e-2  # jy/sr
-        integrand = factor * dndlnM * L_line
-        integration = simps(integrand, x = np.log(mass_bin))
-        return integration * conversion_fac
-
-    def P_shot_gong(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False, params_fisher=None):
-        mass_bin, dndlnM = self.hmf(z, HOD_model=HOD_model)
-        L_line = ll.mhalo_to_lline(mass_bin, z, line_name=line_name, sfr_model=sfr_model, model_name=model_name, params_fisher=params_fisher)
-        integrand_numerator = dndlnM * L_line**2
-        int_numerator = simps(integrand_numerator,  x = np.log(mass_bin))
-        factor = (inp.c_in_mpc) / (4 * np.pi * inp.nu_rest(line_name=line_name) * self.cosmo_setup.H_z(z))
-        conversion_fac = 4.0204e-2 # jy/sr
-        return int_numerator * factor**2 * conversion_fac**2
-
-    def T_line(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False, params_fisher=None):
-        Intensity = self.I_line(z, line_name=line_name, model_name=model_name, sfr_model=sfr_model, HOD_model=HOD_model, params_fisher=params_fisher)
-        nu_obs = inp.nu_rest(line_name=line_name) / (1 + z)
-        T_line = inp.c_in_mpc**2 * Intensity / (2 * inp.kb_si * nu_obs**2)
-        return T_line  # in muK
-
-    def P_shot(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False, params_fisher=None):
-        mass_bin, dndlnM = self.hmf(z, HOD_model=HOD_model)
-        L_line = ll.mhalo_to_lline(mass_bin, z, line_name=line_name, sfr_model=sfr_model, model_name=model_name, params_fisher=params_fisher)
-        integrand_numerator = dndlnM * L_line**2
-        integrand_denominator = dndlnM * L_line
-        int_numerator = simps(integrand_numerator, x = np.log(mass_bin))
-        int_denominator = simps(integrand_denominator,  x =np.log(mass_bin))
-        return int_numerator / int_denominator**2
-
-    def b_line(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False, params_fisher=None):
-        mass_bin, dndlnM = self.hmf(z, HOD_model=HOD_model)
-        L_line = ll.mhalo_to_lline(mass_bin, z, line_name=line_name, sfr_model=sfr_model, model_name=model_name, params_fisher=params_fisher)
-        integrand_numerator = dndlnM * L_line * self.cosmo_setup.bias_dm(mass_bin, z)
-        integrand_denominator = dndlnM * L_line
-        int_numerator = simps(integrand_numerator,  x = np.log(mass_bin))
-        int_denominator = simps(integrand_denominator, x = np.log(mass_bin))
-        return int_numerator / int_denominator
-    
-    
-    
-    def Pk_line(self, k, z, line_name="CII158", label="total", sfr_model="Silva15", model_name="Silva15-m1", pk_unit="intensity", HOD_model=False, params_fisher=None):
-        if pk_unit == "intensity":
-            I_nu_square = (
-                self.I_line(
-                    z,
-                    line_name=line_name,
-                    model_name=model_name,
-                    sfr_model=sfr_model,
-                    HOD_model=HOD_model,
-                    params_fisher=params_fisher
-                )
-                ** 2
-            )
-            pk_lin = self.cosmo_setup.pk_camb(k, z)
-
-            if label == "total":
-                res = I_nu_square * self.b_line(
-                    z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
-                ) ** 2 * pk_lin + I_nu_square * self.P_shot(
-                    z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
-                )
-
-            if label == "clustering":
-                res = (
-                    I_nu_square
-                    * self.b_line(
-                        z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
-                    )
-                    ** 2
-                    * pk_lin
-                )
-
-            if label == "shot":
-                res = I_nu_square * self.P_shot(
-                    z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
-                )
-
-            return res
-
-        if pk_unit == "temperature" or pk_unit == "muk":
-            T_line_square = (
-                self.T_line(
-                    z,
-                    line_name=line_name,
-                    model_name=model_name,
-                    sfr_model=sfr_model,
-                    params_fisher=params_fisher
-                )
-                ** 2
-            )
-            pk_lin = self.cosmo_setup.pk_camb(k, z)
-            if label == "total":
-                res = T_line_square * (
-                    self.b_line(
-                        z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
-                    )
-                    ** 2
-                    * pk_lin
-                    + self.P_shot(
-                        z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
-                    )
-                )
-
-            if label == "clustering":
-                res = T_line_square * (
-                    self.b_line(
-                        z,
-                        line_name=line_name,
-                        sfr_model=sfr_model,
-                        model_name=model_name,
-                        HOD_model=HOD_model,
-                        params_fisher=params_fisher
-                    )
-                    ** 2
-                    * pk_lin
-                )
-
-            if label == "shot":
-                res = T_line_square * (
-                    self.P_shot(
-                        z,
-                        line_name=line_name,
-                        sfr_model=sfr_model,
-                        model_name=model_name,
-                        HOD_model=HOD_model,
-                        params_fisher=params_fisher
-                    )
-                )
-                res = res
-
-            return res
-    
-    
-    
-    def window_gauss(self, z, z_mean, deltaz):
-        p = (1.0 / np.sqrt(2 * np.pi * deltaz)) * np.exp(
-            -((z - z_mean) ** 2) / 2.0 / deltaz**2
-        )
-        return p
-
-    def Cl_line(
-        self,
-        ell,
-        z,
-        deltaz,
-        fduty=1.0,
-        line_name="CII158",
-        label="total",
-        sfr_model="Silva15",
-        model_name="Silva15-m1",
-        pk_unit="temperature",
-        params_fisher=None
-    ):
-        chi = self.cosmo_setup.D_co(z)
-        kp = ell / chi
-        zint = np.logspace(np.log10(z - deltaz), np.log10(z + deltaz), num=10)
-        pk = [
-            self.Pk_line(
-                kp,
-                z,
-                line_name=line_name,
-                sfr_model=sfr_model,
-                model_name=model_name,
-                label=label,
-                pk_unit=pk_unit,
-                params_fisher=params_fisher
-            )
-            for z in zint
-        ]
-        integrand = (
-            1.0
-            / (inp.c_in_mpc)
-            * (
-                self.window_gauss(zint, z, deltaz)
-                * self.cosmo_setup.H_z(z)
-                * pk
-                / chi ** 2
-            )
-        )
-        res = simps(integrand,  x =zint, axis=1)
-        return res
-    
+class lim_sims:
     def __init__(self, halocat_file, halo_redshift, sfr_model="Behroozi19",
                  model_name="Silva15-m1", quantity="intensity", line_name="CII158",
-                 halo_cutoff_mass=1e11, halocat_type="input_cat", line_params=None, cosmo_params=None,
+                 halo_cutoff_mass=1e11, halocat_type="input_cat", parameters=None,
                  ngrid_x=128, ngrid_y=128, ngrid_z=128, boxsize_x=1, boxsize_y=1, boxsize_z=1,
                  nu_obs=None, dnu_obs=None, theta_fwhm=None, z_evolution=False):
 
@@ -2037,7 +1813,7 @@ class theory:
         self.line_name = line_name
         self.halo_cutoff_mass = halo_cutoff_mass    
         self.halocat_type = halocat_type
-        self.line_params = line_params
+   
         self.ngrid_x = ngrid_x
         self.ngrid_y = ngrid_y
         self.ngrid_z = ngrid_z
@@ -2049,11 +1825,15 @@ class theory:
         self.theta_fwhm = theta_fwhm
         self.z_evolution = z_evolution
         
-        if cosmo_params is None:
-            self.cosmo_setup = cosmos.cosmo()
+        
+        
+        if parameters is None:
+            self.parameters = inp.parameters_default 
         else:
-            self.cosmo_setup = cosmos.cosmo(cosmo_params)
-            
+            self.parameters = {**inp.parameters_default, **parameters}
+        
+  
+        self.cosmo_setup = cosmos.cosmo(parameters)
         self.small_h = self.cosmo_setup.h
         
         
@@ -2077,8 +1857,8 @@ class theory:
         
         # Initialize LineConverter
         line_converter = line_modeling(
-            halomass, self.halo_redshift, line_name=self.line_name, model_name=self.model_name,
-            sfr_model=self.sfr_model, line_params=self.line_params
+            line_name=self.line_name, model_name=self.model_name,
+            sfr_model=self.sfr_model, parameters=self.parameters
         )
         
         # Calculate luminosity or intensity line
@@ -2184,8 +1964,8 @@ class theory:
 
             # Initialize LineConverter
             line_converter = line_modeling(
-                halomass, self.halo_redshift, line_name=self.line_name, model_name=self.model_name,
-                sfr_model=self.sfr_model, line_params=self.line_params
+                line_name=self.line_name, model_name=self.model_name,
+                sfr_model=self.sfr_model, parameters=self.parameters
             )
             
             # Calculate luminosity or intensity line
@@ -2256,7 +2036,6 @@ class theory:
         return Igcal
     
     
-
     def get_beam_cov_3d(self, grid_quantity):
         
         theta = lu.convert_beam_unit_to_radian(self.theta_fwhm, beam_unit=self.beam_unit)
@@ -2323,4 +2102,270 @@ class theory:
             return Igcal
 
 
+class theory:
+    def __init__(self, parameters=None):
+        
+        if parameters is None:
+            self.parameters = inp.parameters_default 
+        else:
+            self.parameters = {**inp.parameters_default, **parameters}
+        
+  
+        self.cosmo_setup = cosmos.cosmo(self.parameters)
+        self.small_h = self.cosmo_setup.h
+        
+        print("<--- Parameters used in lines.py--->:")
+        print("Hubble constant (h):", self.cosmo_setup.h)
+        print("Omega matter (Omega_m):", self.cosmo_setup.omega_m)
+        
+        
+    def N_cen(self, M, M_min=1e8, sigma_logm=0.15):
+        res = 0.5 * (1 + erf((np.log10(M) - np.log10(M_min)) / sigma_logm))
+        return res
 
+    def N_sat(self, M, M_cut=10**12.23, M1=10**12.75, alpha_g=0.99):
+        if np.isscalar(M):
+            res = 0.0 if M <= M_cut else self.N_cen(M) * ((M - M_cut) / M1) ** alpha_g
+        else:
+            below_M_cut = np.where(M < M_cut)[0]
+            above_M_cut = np.where(M >= M_cut)[0]
+            res = np.zeros(len(M))
+            res[below_M_cut] = 0.0
+            res[above_M_cut] = self.N_cen(M[above_M_cut]) * ((M[above_M_cut] - M_cut) / M1) ** alpha_g
+        return res
+
+    def N_M_hod(self, Mh):
+        return (self.N_sat(Mh) + 1) * self.N_cen(Mh)
+
+    def hmf(self, z, HOD_model=False):
+        Mass_bin, dndm = self.cosmo_setup.hmf_setup(z)
+        if HOD_model:
+            return Mass_bin, dndm * self.N_M_hod(Mass_bin)
+        else:
+            return Mass_bin, dndm
+
+    def I_line(self, z, line_name="CII158", model_name="Silva15-m1", sfr_model="Silva15", HOD_model=False, params_fisher=None):
+        
+        mass_bin, dndlnM = self.hmf(z, HOD_model=HOD_model)
+        
+        # Initialize LineConverter
+        line_converter = line_modeling(
+            line_name=line_name, model_name=model_name,
+            sfr_model=sfr_model, parameters=self.parameters
+        )
+        
+        # Calculate luminosity or intensity line
+        L_line = line_converter.line_luminosity(mass_bin, z)
+
+        factor = (inp.c_in_mpc) / (4 * np.pi * inp.nu_rest(line_name=line_name) * self.cosmo_setup.H_z(z))
+        conversion_fac = 4.0204e-2  # jy/sr
+        integrand = factor * dndlnM * L_line
+        integration = simps(integrand, x = np.log(mass_bin))
+        return integration * conversion_fac
+
+    def P_shot_gong(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False, params_fisher=None):
+        mass_bin, dndlnM = self.hmf(z, HOD_model=HOD_model)
+        #L_line = ll.mhalo_to_lline(mass_bin, z, line_name=line_name, sfr_model=sfr_model, model_name=model_name, params_fisher=params_fisher)
+        
+        # Initialize LineConverter
+        line_converter = line_modeling(
+            line_name=line_name, model_name=model_name,
+            sfr_model=sfr_model, parameters=self.parameters
+        )
+        
+        # Calculate luminosity or intensity line
+        L_line = line_converter.line_luminosity(mass_bin, z)
+        
+        integrand_numerator = dndlnM * L_line**2
+        int_numerator = simps(integrand_numerator,  x = np.log(mass_bin))
+        factor = (inp.c_in_mpc) / (4 * np.pi * inp.nu_rest(line_name=line_name) * self.cosmo_setup.H_z(z))
+        conversion_fac = 4.0204e-2 # jy/sr
+        return int_numerator * factor**2 * conversion_fac**2
+
+    def T_line(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False, params_fisher=None):
+        Intensity = self.I_line(z, line_name=line_name, model_name=model_name, sfr_model=sfr_model, HOD_model=HOD_model, params_fisher=params_fisher)
+        nu_obs = inp.nu_rest(line_name=line_name) / (1 + z)
+        T_line = inp.c_in_mpc**2 * Intensity / (2 * inp.kb_si * nu_obs**2)
+        return T_line  # in muK
+
+    def P_shot(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False, params_fisher=None):
+        mass_bin, dndlnM = self.hmf(z, HOD_model=HOD_model)
+        # Initialize LineConverter
+        line_converter = line_modeling(
+            line_name=line_name, model_name=model_name,
+            sfr_model=sfr_model, parameters=self.parameters
+        )
+        
+        # Calculate luminosity or intensity line
+        L_line = line_converter.line_luminosity(mass_bin, z)
+        
+        
+        
+        integrand_numerator = dndlnM * L_line**2
+        integrand_denominator = dndlnM * L_line
+        int_numerator = simps(integrand_numerator, x = np.log(mass_bin))
+        int_denominator = simps(integrand_denominator,  x =np.log(mass_bin))
+        return int_numerator / int_denominator**2
+
+    def b_line(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False, params_fisher=None):
+        mass_bin, dndlnM = self.hmf(z, HOD_model=HOD_model)
+        
+        
+        # Initialize LineConverter
+        line_converter = line_modeling(
+            line_name=line_name, model_name=model_name,
+            sfr_model=sfr_model, parameters=self.parameters
+        )
+        
+        # Calculate luminosity or intensity line
+        L_line = line_converter.line_luminosity(mass_bin, z)
+        
+        integrand_numerator = dndlnM * L_line * self.cosmo_setup.bias_dm(mass_bin, z)
+        integrand_denominator = dndlnM * L_line
+        int_numerator = simps(integrand_numerator,  x = np.log(mass_bin))
+        int_denominator = simps(integrand_denominator, x = np.log(mass_bin))
+        return int_numerator / int_denominator
+    
+    
+    
+    def Pk_line(self, k, z, line_name="CII158", label="total", sfr_model="Silva15", model_name="Silva15-m1", pk_unit="intensity", HOD_model=False, params_fisher=None):
+        if pk_unit == "intensity":
+            I_nu_square = (
+                self.I_line(
+                    z,
+                    line_name=line_name,
+                    model_name=model_name,
+                    sfr_model=sfr_model,
+                    HOD_model=HOD_model,
+                    params_fisher=params_fisher
+                )
+                ** 2
+            )
+            pk_lin = self.cosmo_setup.pk_camb(k, z)
+
+            if label == "total":
+                res = I_nu_square * self.b_line(
+                    z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
+                ) ** 2 * pk_lin + I_nu_square * self.P_shot(
+                    z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
+                )
+
+            if label == "clustering":
+                res = (
+                    I_nu_square
+                    * self.b_line(
+                        z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
+                    )
+                    ** 2
+                    * pk_lin
+                )
+
+            if label == "shot":
+                res = I_nu_square * self.P_shot(
+                    z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
+                )
+
+            return res
+
+        if pk_unit == "temperature" or pk_unit == "muk":
+            T_line_square = (
+                self.T_line(
+                    z,
+                    line_name=line_name,
+                    model_name=model_name,
+                    sfr_model=sfr_model,
+                    params_fisher=params_fisher
+                )
+                ** 2
+            )
+            pk_lin = self.cosmo_setup.pk_camb(k, z)
+            if label == "total":
+                res = T_line_square * (
+                    self.b_line(
+                        z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
+                    )
+                    ** 2
+                    * pk_lin
+                    + self.P_shot(
+                        z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
+                    )
+                )
+
+            if label == "clustering":
+                res = T_line_square * (
+                    self.b_line(
+                        z,
+                        line_name=line_name,
+                        sfr_model=sfr_model,
+                        model_name=model_name,
+                        HOD_model=HOD_model,
+                        params_fisher=params_fisher
+                    )
+                    ** 2
+                    * pk_lin
+                )
+
+            if label == "shot":
+                res = T_line_square * (
+                    self.P_shot(
+                        z,
+                        line_name=line_name,
+                        sfr_model=sfr_model,
+                        model_name=model_name,
+                        HOD_model=HOD_model,
+                        params_fisher=params_fisher
+                    )
+                )
+                res = res
+
+            return res
+    
+    
+    def window_gauss(self, z, z_mean, deltaz):
+        p = (1.0 / np.sqrt(2 * np.pi * deltaz)) * np.exp(
+            -((z - z_mean) ** 2) / 2.0 / deltaz**2
+        )
+        return p
+
+    def Cl_line(
+        self,
+        ell,
+        z,
+        deltaz,
+        fduty=1.0,
+        line_name="CII158",
+        label="total",
+        sfr_model="Silva15",
+        model_name="Silva15-m1",
+        pk_unit="temperature",
+        params_fisher=None
+    ):
+        chi = self.cosmo_setup.D_co(z)
+        kp = ell / chi
+        zint = np.logspace(np.log10(z - deltaz), np.log10(z + deltaz), num=10)
+        pk = [
+            self.Pk_line(
+                kp,
+                z,
+                line_name=line_name,
+                sfr_model=sfr_model,
+                model_name=model_name,
+                label=label,
+                pk_unit=pk_unit,
+                params_fisher=params_fisher
+            )
+            for z in zint
+        ]
+        integrand = (
+            1.0
+            / (inp.c_in_mpc)
+            * (
+                self.window_gauss(zint, z, deltaz)
+                * self.cosmo_setup.H_z(z)
+                * pk
+                / chi ** 2
+            )
+        )
+        res = simps(integrand,  x =zint, axis=1)
+        return res
+    
