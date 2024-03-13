@@ -16,7 +16,7 @@ except ImportError:
 
 setup_kwargs = {
 'name': 'limpy', 
-'version': '1.0', 
+'version': '2.0', 
 'description': 'Line Intensity Mapping code in PYthon', 
 'author': 'Anirban Roy', 
 'author_email': 'anirbanroy.personal@gmail.com', 

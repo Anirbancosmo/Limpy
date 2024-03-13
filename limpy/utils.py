@@ -5,18 +5,221 @@ Created on Tue Jun  9 11:57:35 2020
 
 @author: anirbanroy
 """
-import imp
 
 import numpy as np
-from scipy.integrate import simps
+import limpy.inputs as inp
 
-import limpy.cosmos as cosmos
-import limpy.params as p
 
-imp.reload(cosmos)
-imp.reload(p)
+# Name of all lines
+line_list = [
+    "CI371",
+    "CI610",
+    "CII158",
+    "CO10",
+    "CO21",
+    "CO32",
+    "CO43",
+    "CO54",
+    "CO65",
+    "CO76",
+    "CO87",
+    "CO98",
+    "CO109",
+    "CO1110",
+    "CO1211",
+    "CO1312",
+    "NII122",
+    "NII205",
+    "NIII57",
+    "OI63",
+    "OI145",
+    "OIII52",
+    "OIII88",
+]
 
-from astropy.convolution import Gaussian2DKernel, convolve
+
+def model_avail(line_name="CII158", do_print=False):
+    """
+    Gives the available model names for a particularl line name.
+
+    parameters
+    ----------
+    line_name: str
+            name of the line to calculate intensity and other quantities.
+
+    Returns
+    -------
+    sfr_model: str
+            Available star formation models.
+
+    model_name: str
+            Available model names that converts the star formation rate to
+            line luminosity or halo mass to line luminosity.
+    """
+
+    if line_name not in line_list:
+        raise ValueError("Line name is not known. Check available lines.")
+
+    sfr_models = ["Behroozi19", "Tng300", "Tng100", "Silva15", "Fonseca16"]
+
+    if line_name == "CII158":
+        model_names = [
+            "Visbal10",
+            "Silva15-m1",
+            "Silva15-m2",
+            "Silva15-m3",
+            "Silva15-m4",
+            "Fonseca16",
+            "Lagache18",
+            "Schaerer20",
+            "Alma_scalling",
+        ]
+
+    if line_name == "CO10":
+        model_names = ["Visbal10", "Kamenetzky15", "Alma_scalling"]
+
+    if (
+        line_name == "CO21"
+        or line_name == "CO32"
+        or line_name == "CO43"
+        or line_name == "CO54"
+        or line_name == "CO65"
+        or line_name == "CO76"
+        or line_name == "CO87"
+        or line_name == "C98"
+        or line_name == "CO109"
+        or line_name == "1110"
+        or line_name == "CO1211"
+        or line_name == "CO1312"
+    ):
+
+        model_names = ["Visbal10", "Kamenetzky15", "Alma_scalling"]
+
+    if line_name == "NII122":
+        model_names = ["Visbal10"]
+
+    if line_name == "NII205":
+        model_names = ["Visbal10"]
+
+    if line_name == "NIII57":
+        model_names = ["Visbal10"]
+
+    if line_name == "OI63":
+        model_names = ["Visbal10"]
+
+    if line_name == "OI145":
+        model_names = ["Visbal10"]
+
+    if line_name == "OIII52":
+        model_names = ["Visbal10"]
+
+    if line_name == "OIII88":
+        model_names = [
+            "Visbal10",
+            "Delooze14",
+            "Gong17",
+            "Fonseca16",
+            "Kannan22",
+            "Alma_scalling",
+        ]
+    
+    if do_print:
+        print("The models available for %s lines\n" % (line_name))
+        print("\n The star formation models are :", (sfr_models))
+        print("\n The luminosity models are :", (model_names))
+
+    return sfr_models, model_names
+
+
+def line_scattered_params_alma(line_name="CII158"):
+    if line_name == "CII158":
+        a_off = inp.a_off_CII_158
+        a_std = inp.a_std_CII_158
+        b_off = inp.b_off_CII_158
+        b_std = inp.b_std_CII_158
+
+    if line_name == "OIII88":
+        a_off = inp.a_off_OIII_88
+        a_std = inp.a_std_OIII_88
+        b_off = inp.b_off_OIII_88
+        b_std = inp.b_std_OIII_88
+
+    if line_name == "CO10":
+        a_off = inp.a_off_CO_1_0
+        a_std = inp.a_std_CO_1_0
+        b_off = inp.b_off_CO_1_0
+        b_std = inp.b_std_CO_1_0
+    if line_name == "CO21":
+        a_off = inp.a_off_CO_2_1
+        a_std = inp.a_std_CO_2_1
+        b_off = inp.b_off_CO_2_1
+        b_std = inp.b_std_CO_2_1
+    if line_name == "CO32":
+        a_off = inp.a_off_CO_3_2
+        a_std = inp.a_std_CO_3_2
+        b_off = inp.b_off_CO_3_2
+        b_std = inp.b_std_CO_3_2
+    if line_name == "CO43":
+        a_off = inp.a_off_CO_4_3
+        a_std = inp.a_std_CO_4_3
+        b_off = inp.b_off_CO_4_3
+        b_std = inp.b_std_CO_4_3
+    if line_name == "CO54":
+        a_off = inp.a_off_CO_5_4
+        a_std = inp.a_std_CO_5_4
+        b_off = inp.b_off_CO_5_4
+        b_std = inp.b_std_CO_5_4
+    if line_name == "CO65":
+        a_off = inp.a_off_CO_6_5
+        a_std = inp.a_std_CO_6_5
+        b_off = inp.b_off_CO_6_5
+        b_std = inp.b_std_CO_6_5
+    if line_name == "CO76":
+        a_off = inp.a_off_CO_7_6
+        a_std = inp.a_std_CO_7_6
+        b_off = inp.b_off_CO_7_6
+        b_std = inp.b_std_CO_7_6
+    if line_name == "CO87":
+        a_off = inp.a_off_CO_8_7
+        a_std = inp.a_std_CO_8_7
+        b_off = inp.b_off_CO_8_7
+        b_std = inp.b_std_CO_8_7
+    if line_name == "CO98":
+        a_off = inp.a_off_CO_9_8
+        a_std = inp.a_std_CO_9_8
+        b_off = inp.b_off_CO_9_8
+        b_std = inp.b_std_CO_9_8
+    if line_name == "CO109":
+        a_off = inp.a_off_CO_10_9
+        a_std = inp.a_std_CO_10_9
+        b_off = inp.b_off_CO_10_9
+        b_std = inp.b_std_CO_10_9
+    if line_name == "CO1110":
+        a_off = inp.a_off_CO_11_10
+        a_std = inp.a_std_CO_11_10
+        b_off = inp.b_off_CO_11_10
+        b_std = inp.b_std_CO_11_10
+    if line_name == "CO1211":
+        a_off = inp.a_off_CO_12_11
+        a_std = inp.a_std_CO_12_11
+        b_off = inp.b_off_CO_12_11
+        b_std = inp.b_std_CO_12_11
+    if line_name == "CO1312":
+        a_off = inp.a_off_CO_13_12
+        a_std = inp.a_std_CO_13_12
+        b_off = inp.b_off_CO_13_12
+        b_std = inp.b_std_CO_13_12
+        
+        
+    dict_obj={'a_off' : a_off, 
+              'a_std': a_std, 
+              'b_off': b_off,
+              'b_std': b_std,
+        }
+
+    return dict_obj
+
+
 
 
 
@@ -56,153 +259,6 @@ def volume_cell(boxsize, ngrid):
     
     clen = boxsize / ngrid  # length of a cell
     return clen**3  # in (Mpc/h)**3
-
-
-def angle_to_comoving_size(z, angle):
-    """
-    get the comoving size for an angle at redshift z.
-    
-    Parameters
-    ----------
-    z: float
-        redshift
-    angle: float
-        angle in radian.
-            
-    
-    Returns
-    -------
-        size in (Mpc/h)
-    """
-
-    dc = p.cosmo.D_co(z)
-    size = angle * dc
-    return size
-
-
-def comoving_boxsize_to_angle(z, boxsize):
-    """
-    Angle substended by the surface of a box at redshift z.
-    
-    Parameters
-    ----------
-    boxsize: float
-        the length of the box in MPc/h
-        
-    z: float
-        redshift
-    
-            
-    
-    Returns
-    -------
-    Angle: float
-        angle in radian unit.
-    """
-
-    da = p.cosmo.D_co(z)
-    theta_rad = boxsize / da
-    return theta_rad
-
-
-def angle_to_comoving_boxsize(z, angle, angle_unit="degree"):
-    """
-    Angle substended by the surface of a box at redshift z.
-    
-    Parameters
-    ----------
-    z: float
-        redshift
-    
-    angle:
-        The angle in radian or degree defined by angle_unit.
-    
-    angle_unit: str
-        The unit of angle, either in degree or radian.
-    
-    Returns
-    -------
-    boxsize: float
-        The comoving boxsize in (Mpc/h)
-    """
-    
-    if angle_unit == "degree":
-        theta_rad = angle * np.pi / 180
-
-    if angle_unit == "radian":
-        theta_rad = angle
-
-    da = p.cosmo.D_co(z)
-    boxsize = theta_rad * da
-    return boxsize
-
-
-def physical_boxsize_to_angle(z, boxsize):    
-    da = p.cosmo.D_angular(z)
-    theta_rad = boxsize / da
-    return theta_rad
-
-
-def length_projection(z=None, dz=None, nu_obs=None, dnu=None, line_name="CII"):
-    """
-    This function returns the projection length for the frequency resolution, dnu_obs.
-    
-    Parameters
-    ----------
-    z: float
-        redshift
-    
-    dz: float
-        redshift bin size. z and dz have to be passed toegther. 
-    
-    nu_obs: float
-        observational frequency in GHz.
-    
-    dnu_obs: float
-        observational frequency resolution in GHz.   
-    
-    line_name: str
-        the name of the lines. Check "line_list" to get all the available lines.
-    
-    angle_unit: str
-        The unit of angle, either in degree or radian.
-    
-    Returns
-    -------
-    boxsize: float
-        The comoving boxsize in (Mpc/h)
-    """
-    
-    if (z is None and dz is not None) or (z is not None and dz is None):
-        raise ValueError(
-            "Specify z and dz together to calculate the projection length calculation."
-        )
-
-    if (nu_obs is None and dnu is not None) or (nu_obs is not None and dnu is None):
-        raise ValueError(
-            "Specify nu_obs and dnu together to calculate the projection length calculation."
-        )
-
-    if (z is None and dz is None) and (nu_obs is None and dz is None):
-        raise ValueError(
-            "Either specify z and dz together or nu_obs and dnu together for projection length calculation."
-        )
-
-    if z != None and dz != None:
-        dco1 = p.cosmo.D_co(z)
-        dco2 = p.cosmo.D_co(z + dz)
-        res = dco2 - dco1
-
-    if nu_obs != None and dnu != None:
-        z_obs1 = nu_obs_to_z(nu_obs, line_name=line_name)
-        z_obs2 = nu_obs_to_z((nu_obs + dnu), line_name=line_name)
-
-        dco1 = p.cosmo.D_co(z_obs1)
-        dco2 = p.cosmo.D_co(z_obs2)
-        res = dco1 - dco2
-
-    return res
-
 
 
 def convert_beam_unit_to_radian(theta_beam, beam_unit):
@@ -273,41 +329,6 @@ def Omega_beam(theta_beam, beam_unit="arcmin"):
     return np.pi * theta_rad**2 / 4 * np.log(2)
 
 
-def sigma_beam_parallel(theta_beam, z, beam_unit="arcmin"):
-    beam_par = p.cosmo.D_co(z) * sigma_beam(theta_beam, beam_unit=beam_unit)
-    return beam_par  # unit in mpc/h
-
-
-def sigma_beam_perpendicular(z, nu_obs, delta_nu):
-    res = (p.c_in_mpc / p.cosmo.H_z(z)) * ((1 + z) * delta_nu / nu_obs)
-    return res * p.small_h  # unit in mpc/h
-
-
-def W_beam_Li(k, theta_beam, z, nu_obs, delta_nu, beam_unit="arcmin"):
-    sigma_para = sigma_beam_parallel(theta_beam, z, beam_unit=beam_unit)
-    sigma_perp = sigma_beam_perpendicular(z, nu_obs, delta_nu)
-
-    mu = np.linspace(0, 1, num=200)
-    sigma_sq = -(k**2) * (sigma_para**2 - sigma_perp**2)
-
-    if sigma_sq >= 400.0:
-        sigma_sq = 400.0
-    else:
-        sigma_sq = sigma_sq
-
-    k1 = -(k**2) * sigma_perp**2
-
-    integrand1 = np.exp(k1)
-
-    integrand = np.exp(sigma_sq * mu**2)
-
-    print(integrand)
-    res = integrand1 * simps(integrand, mu)
-
-    return res
-
-
-
 
 def t_pix(theta_beam, tobs_total, Ndet_eff, S_area, beam_unit="arcmin"):
     """
@@ -322,34 +343,12 @@ def t_pix(theta_beam, tobs_total, Ndet_eff, S_area, beam_unit="arcmin"):
 
     """
     omega_beam = Omega_beam(theta_beam, beam_unit=beam_unit)
-    S_area_rad = S_area * (p.degree_to_radian) ** 2
+    S_area_rad = S_area * (inp.degree_to_radian) ** 2
 
     tobs_total *= 3600  # hours to seconds
     res = tobs_total * Ndet_eff * omega_beam / (S_area_rad)
     return res
 
-'''
-def V_surv(z, S_area, B_nu, line_name="CII158"):
-    """
-    Calculates the survey volume in MPc.
-
-    z: redshift
-    lambda_line: frequncy of line emission in micrometer
-    A_s: Survey area in degree**2
-    B_nu: Total frequency band width resolution in GHz
-
-    return: Survey volume.
-    """
-
-    nu = p.nu_rest(line_name)
-    Sa_rad = S_area * (p.degree_to_radian) ** 2
-
-    lambda_line = p.freq_to_lambda(nu)  # mpc/h
-
-    y = lambda_line * (1 + z) ** 2 / p.cosmo.H_z(z)
-    res = p.cosmo.D_co(z) ** 2 * y * (Sa_rad) * B_nu
-    return res  # (Mpc/h)^3
-'''
 
 def nu_obs_to_z(nu_obs, line_name="CII158"):
     """
@@ -361,7 +360,7 @@ def nu_obs_to_z(nu_obs, line_name="CII158"):
 
     global nu_rest_line
 
-    nu_rest_line = p.nu_rest(line_name=line_name)
+    nu_rest_line = inp.nu_rest(line_name=line_name)
 
     if nu_obs >= nu_rest_line:
         z = 0
@@ -371,63 +370,6 @@ def nu_obs_to_z(nu_obs, line_name="CII158"):
     return z
 
 
-def comoving_size_to_delta_nu(length, z, line_name="CII158"):
-    nu_rest_line = p.nu_rest(line_name=line_name)
-
-    dchi_dz = p.c_in_mpc / p.cosmo.H_z(z)
-
-    dnu = (length) * nu_rest_line / (dchi_dz * (1 + z) ** 2)
-
-    return dnu
-
-
-def solid_angle(length, z):
-
-    "Solid angle in Sr unit"
-    A = length * length
-    Dco = p.cosmo.D_co(z)
-    return A / Dco**2
-
-
-def V_pix(z, theta_beam, delta_nu, beam_unit="arcmin", line_name="CII158"):
-    """
-    z: redshift
-    lambda_line: frequncy of line emission in micrometer
-    theta_min: beam size in arc-min
-    delta_nu: the frequency resolution in GHz
-    """
-
-    theta_rad = convert_beam_unit_to_radian(theta_beam, beam_unit=beam_unit)
-
-    nu = p.nu_rest(line_name)
-
-    lambda_line = p.freq_to_lambda(nu)
-
-    y = lambda_line * (1 + z) ** 2 / p.cosmo.H_z(z)
-    res = p.cosmo.D_co(z) ** 2 * y * (theta_rad) ** 2 * delta_nu
-    return res  # (Mpc/h)^3
-
-
-def box_freq_to_quantities(
-    nu_obs=280, dnu_obs=2.8, boxsize=80, ngrid=512, z_start=None, line_name="CII158"
-):
-
-    nu_rest = p.nu_rest(line_name=line_name)
-
-    cell_size = boxsize / ngrid
-
-    if z_start:
-        z_em = z_start
-    else:
-        z_em = (nu_rest / nu_obs) - 1
-
-    dz_em = nu_rest * dnu_obs / (nu_obs * (nu_obs + dnu_obs))
-    d_chi = p.cosmo.D_co(z_em + dz_em) - p.cosmo.D_co(z_em)
-    d_ngrid = int(d_chi / cell_size)
-
-    return round(z_em, 2), round(dz_em, 2), d_chi, d_ngrid
-
-
 def get_lines_same_frequency(line_list, nu_obs=220, dnu_obs=40, zlim=15):
     global z_em
     list_len = len(line_list)
@@ -435,9 +377,9 @@ def get_lines_same_frequency(line_list, nu_obs=220, dnu_obs=40, zlim=15):
     dz_em = np.zeros(list_len)
     
     for i in range(list_len):
-        nu_rest = p.nu_rest(line_name=line_list[i]) 
-        z_em[i] = (nu_rest / nu_obs) - 1
-        dz_em[i] = nu_rest * dnu_obs / (nu_obs * (nu_obs + dnu_obs))
+        nu_rest_line = inp.nu_rest(line_name=line_list[i]) 
+        z_em[i] = (nu_rest_line / nu_obs) - 1
+        dz_em[i] = nu_rest_line * dnu_obs / (nu_obs * (nu_obs + dnu_obs))
         
         
             
@@ -459,25 +401,6 @@ def sigma_noise(theta_min, NEI, beam_unit="arcmin"):
     # omegab=Omega_beam(theta_min, beam_unit=beam_unit)
     return NEI  # * 1e-9/omegab
 
-
-def P_noise(z, theta_min, delta_nu, NEI, tobs_total, Nspec_eff, S_a):
-    """
-    White noise of an experiment.
-    z: redshift
-    theta_min: beam size in arc-min
-    delta_nu: frequency resolution in GHz.
-    NEI: noise equivalence impedence.
-    tobs_total: total observing time in hours.
-    Nspec_eff: effective number of detectors.
-    S_a: Survey area in degree^2.
-    """
-
-    Pn = (
-        V_pix(z, theta_min, delta_nu)
-        * sigma_noise(theta_min, NEI) ** 2
-        / (t_pix(theta_min, tobs_total, Nspec_eff, S_a))
-    )
-    return Pn
 
 
 def P_noise_ccatp(nu=220):
@@ -504,7 +427,7 @@ def N_modes(k, z, delta_k, Vs):
 def V_survey(z, dnu_obs=2.8, area= 16, line_name = "CII158"):
     "Survey field for CII lines" # given by Gong et al. 2012
     
-    lambda_line = p.lambda_line(line_name=line_name)
+    lambda_line = inp.lambda_line(line_name=line_name)
 
     res= 3.7e7 * np.sqrt((1+z)/8)* (area/ 16) * (dnu_obs/ 20) * (lambda_line/158)
 
@@ -700,26 +623,6 @@ def make_halocat(halo_file, halocat_type="input_cat", mmin=None, boxsize=None):
     return halomass, halo_cm
 
 
-"""
-def make_grid_from_halocat(halo_catalouge, boxlength, ngrid, ndim, filetype='dat'):
-    mh, halo_cm=make_halocat(halo_catalouge,filetype=filetype, boxsize=boxlength)
-    
-    halo_cm=halo_cm.reshape(3, len(mh))
-    
-    cellsize=(boxlength/ngrid)
-    
-    bins = cellsize*np.arange(0,ngrid,1)
-    
-    bin_index_x=np.digitize(halo_cm[0], bins)
-    bin_index_y=np.digitize(halo_cm[1], bins)
-    bin_index_z=np.digitize(halo_cm[2], bins)
-    
-    binweight_x=np.bincount(bin_index_x, minlength=len(bins)+1)[1:-1]
-    binweight_y=np.bincount(bin_index_y, minlength=len(bins)+1)[1:-1]
-    binweight_z=np.bincount(bin_index_z, minlength=len(bins)+1)[1:-1]
-    
-    return binweight_x,  binweight_y,  binweight_z
- """
 
 
 def cic(x):
@@ -991,104 +894,8 @@ def get_noise_grid(pk_noise,
     return f2
 
 
-
 def dk(k, pk):
     return k **3 * pk/2.0/np.pi**2
-
-
-def make_grid_dnu_obs(grid,
-                      boxsize_x,
-                      boxsize_y,
-                      boxsize_z,
-                      ngrid_x,
-                      ngrid_y,
-                      ngrid_z,
-                      nu_obs,
-                      dnu_obs,
-                      line_name,
-                      theta_fwhm=None):
-    """
-    Generate a gridded cube of intensity fluctuations from a simulation box for a 
-    given frequency resolution.
-    
-    Parameters
-    ----------
-    grid : array_like
-        The 3D cube of intensity values in the simulation box. 
-        Shape should be (ngrid_x, ngrid_y, ngrid_z).
-    ngrid_x : int
-        Number of grid cells in the x-direction.
-    ngrid_y : int
-        Number of grid cells in the y-direction.
-    ngrid_z : int
-        Number of grid cells in the z-direction.
-    boxsize_x : float
-        Size of the simulation box in the x-direction in Mpc/h.
-    boxsize_y : float
-        Size of the simulation box in the y-direction in Mpc/h.
-    boxsize_z : float
-        Size of the simulation box in the z-direction in Mpc/h.
-    nu_obs : float
-        Observed frequency of an experiment in GHz.
-    dnu_obs : float
-        frequncy resolution in GHz.
-    line_name : str
-        Name of the emission line.
-    theta_fwhm : float, optional
-        Full width at half maximum of the telescope beam in arcminutes.
-        If not given, no beam convolution will be applied.
-    
-    Returns
-    -------
-    array_like
-        The 3D cube of convolved intensity fluctuations. 
-    """
-    
-    global zem, dz, dchi, d_ngrid 
-    
-    # Compute useful quantities
-    zem, dz, dchi, d_ngrid = box_freq_to_quantities(nu_obs=nu_obs,
-                                                       dnu_obs=dnu_obs,
-                                                       boxsize=boxsize_z,
-                                                       ngrid=ngrid_z,
-                                                       line_name=line_name)
-    
-    Ngrid_new = int(ngrid_z/d_ngrid) if d_ngrid < ngrid_z else 1
-    d_ngrid = min(d_ngrid, ngrid_z)
-    
-    if theta_fwhm is not None:
-        convolved_grid = []
-        theta = convert_beam_unit_to_radian(theta_fwhm, beam_unit= 'arcmin')
-        
-        for i in range(Ngrid_new):
-            grid_start = i * d_ngrid
-            grid_end = (i+1) * d_ngrid
-            z_start = zem + (i* dz)
-            print(grid_start, grid_end)
-            
-            beam_size = angle_to_comoving_size(z_start, theta)
-            beam_std = beam_size / (np.sqrt(8 * np.log(2.0)))
-            gauss_kernel = Gaussian2DKernel(beam_std)
-            grid_quantity = np.mean(grid[:,:, grid_start: grid_end], axis =2)
-            
-            
-            convolved_grid_cal = convolve(grid_quantity, gauss_kernel)
-            convolved_grid.append(convolved_grid_cal)
-        
-
-        Igcal = np.swapaxes(convolved_grid, 0, 2)
-            
-        return Igcal
-        
-        
-    if theta_fwhm == None:
-        grid_split = np.split(grid, Ngrid_new, axis=2)
-        grid_mean = np.mean(grid_split, axis=3)
-        Igcal = np.swapaxes(grid_mean, 0, 2)
-        
-        return Igcal
-    
-
 
 
 

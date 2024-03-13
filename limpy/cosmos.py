@@ -1,11 +1,3 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Jul 12 11:57:30 2020
-
-@author: anirbanroy
-"""
-
 import camb
 import numpy as np
 import scipy.integrate as si
@@ -13,46 +5,43 @@ from camb import get_matter_power_interpolator
 from colossus.cosmology import cosmology as col_cosmology
 from colossus.lss import bias, mass_function
 
-# from hmf import MassFunction
-# from hmf import cosmo as cosmo_hmf
 
 import limpy.inputs as inp
 
-col_cosmology.setCosmology("planck18")
-
-
 class cosmo:
-    def __init__(self):
-        self.h = inp.cosmo_params["h"]
-        self.ol = inp.cosmo_params["omega_lambda"]
-        self.ob = inp.cosmo_params["omgega_bh2"] / self.h**2
-        self.om = inp.cosmo_params["omega_mh2"] / self.h**2
-        self.ocdm = inp.cosmo_params["omgega_ch2"] / self.h**2
-        self.ns = inp.cosmo_params["ns"]
-        self.sigma8 = inp.cosmo_params["sigma8"]
+    def __init__(self, h=inp.h, omega_lambda=inp.omega_lambda, omega_b=inp.omega_b,
+                 omega_m=inp.omega_m, tau=inp.tau, ns=inp.ns, sigma_8=inp.sigma_8, 
+                 halo_model=inp.halo_model, halo_mass_def=inp.halo_mass_def, M_min=inp.M_min, M_max=inp.M_max,
+                 delta_c=inp.delta_c, bias_model=inp.bias_model, bias_mass_def=inp.bias_mass_def):
+        
+        # Initialize cosmological parameters with inputs
+        self.h = h
+        self.omega_lambda = omega_lambda
+        self.omega_b = omega_b
+        self.omega_m = omega_m
+        self.omega_cdm = (omega_m- omega_b)
+        self.ns = ns
+        self.sigma_8 = sigma_8
 
-        self.H0 = 100 * self.h  # Km/S/Mpc
+        self.H_0 = 100 * self.h  # Km/S/Mpc
 
-        if inp.cosmo_params["omega_k"] is not None:
-            self.ok = inp.cosmo_params["omega_k"]
-        else:
-            self.ok = 1 - (inp.cosmo_params["omega_mh2"] / self.h**2 + self.ol)
-
-        self.G_const = inp.default_constants["G_const"]
-        self.c_in_m = inp.default_constants["c_in_m"]
-        self.c_in_mpc = inp.default_constants["c_in_mpc"]
-
-        self.mpc_to_m = inp.default_constants["mpc_to_m"]
-        self.km_to_m = inp.default_constants["km_to_m"]
-        self.km_to_mpc = inp.default_constants["km_to_mpc"]
-        self.kpc_to_m = inp.default_constants["mpc_to_m"] / 1e3
-
-        self.halo_model = inp.astro_params["halo_model"]
-
-        self.halo_model_mdef = inp.astro_params["halo_mass_def"]
+        # Handle omega_k separately
+        self.omega_k = 1 - (omega_m + omega_lambda)
+        
+        # Handle astrophysical parameters using variable names
+        self.M_min = M_min
+        self.M_max = M_max
+        self.delta_c = delta_c
+        self.halo_model = halo_model
+        self.halo_mass_def = halo_mass_def
+        self.bias_model = bias_model
+        self.bias_mass_def = bias_mass_def
+        
+        #Initialize cosmological parameters for colossus
+        #set_cosmo = self.set_cosmo_colossus()
 
     def E_z(self, z):
-        return np.sqrt(self.om * (1 + z) ** 3 + self.ok * (1 + z) ** 2 + self.ol)
+        return np.sqrt(self.omega_m * (1 + z) ** 3 + self.omega_k * (1 + z) ** 2 + self.omega_lambda)
 
     def H_z(self, z):
         """
@@ -62,29 +51,29 @@ class cosmo:
         return (
             100
             * self.h
-            * np.sqrt(self.om * (1 + z) ** 3 + self.ok * (1 + z) ** 2 + self.ol)
-            * self.km_to_m
-            / self.mpc_to_m
+            * np.sqrt(self.omega_m * (1 + z) ** 3 + self.omega_k * (1 + z) ** 2 + self.omega_lambda)
+            * inp.km_to_m
+            / inp.mpc_to_m
         )
 
     def D_co_unvec(self, z):
         """
         Comoving distance transverse.
         """
-        omega_k_abs = abs(self.ok)
-        D_H = self.c_in_mpc / (self.H0 * self.km_to_mpc) 
+        omega_k_abs = abs(self.omega_k)
+        D_H = inp.c_in_mpc / (self.H_0 * inp.km_to_mpc) 
         
-        D_H *= self.h
+        D_H *= self.h # in Mpc/h unit
 
         D_c_int = lambda z: D_H / self.E_z(z)
         D_c = si.quad(D_c_int, 0, z, limit=1000)[0] 
 
-        if self.ok == 0:
+        if self.omega_k == 0:
             return D_c
-        elif self.ok < 0:
+        elif self.omega_k < 0:
             return D_H / np.sqrt(omega_k_abs) * np.sin(np.sqrt(omega_k_abs) * D_c / D_H)
-        elif self.ok > 0:
-            return D_H * np.sinh(np.sqrt(self.ok) * D_c / D_H) / np.sqrt(self.ok) 
+        elif self.omega_k > 0:
+            return D_H * np.sinh(np.sqrt(self.omega_k) * D_c / D_H) / np.sqrt(self.omega_k) 
         
         
     def D_co(self, z):
@@ -101,29 +90,28 @@ class cosmo:
         """
         Comoving distance transverse.
         """
-        omega_k_abs = abs(self.ok)
-        D_H = self.c_in_mpc / (self.H0 * self.km_to_mpc)
-        D_H *= self.h 
+        omega_k_abs = abs(self.omega_k)
+        D_H = inp.c_in_mpc / (self.H_0 * inp.km_to_mpc)
+        #D_H *= self.h 
 
         D_c_int = lambda z: D_H / self.E_z(z)
         D_c = si.quad(D_c_int, 0, z, limit=1000)[0]
 
-        if self.ok == 0:
+        if self.omega_k == 0:
             return D_c
-        elif self.ok < 0:
+        elif self.omega_k < 0:
             return D_H / np.sqrt(omega_k_abs) * np.sin(np.sqrt(omega_k_abs) * D_c / D_H)
-        elif self.ok > 0:
-            return D_H * np.sinh(np.sqrt(self.ok) * D_c / D_H) / np.sqrt(self.ok)
+        elif self.omega_k > 0:
+            return D_H * np.sinh(np.sqrt(self.omega_k) * D_c / D_H) / np.sqrt(self.omega_k)
 
     def D_angular(self, z):
         """
         Angular diameter distance
         """
-        # res= self.D_co(z)
         if np.isscalar(z):
             return self.D_co_unvec(z) / (1 + z)
         else:
-            return [self.D_co(zin) / (1 + zin) for zin in z]
+            return [self.D_co_unvec(zin) / (1 + zin) for zin in z]
 
     
     def D_luminosity(self, z):
@@ -138,71 +126,292 @@ class cosmo:
                 result_array[i] = self.D_angular(z[i]) * (1 + z[i]) ** 2
 
             return result_array
+        
+        
+    def solid_angle(self, length, z):
+        "Solid angle in Sr unit"
+        A = length * length
+        chi = self.D_co(z)
+        return A / chi**2
 
+    
     def pk_camb(self, k, z, kmax=10.0):
         pars = camb.CAMBparams()
         pars.set_cosmology(
-            H0=100 * self.h, ombh2=self.ob * self.h**2, omch2=self.ocdm * self.h**2
+            H0=100 * self.h, ombh2=self.omega_b * self.h**2, omch2=self.omega_cdm * self.h**2,
+            omk= self.omega_ks
+            
         )
         pars.InitPower.set_params(ns=self.ns)
 
         pars.set_matter_power(redshifts=[z], kmax=kmax)
+        
 
         PK = get_matter_power_interpolator(pars)
 
         return PK.P(z, k)
 
-    def pk_lin_camb(self, k, z, kmax=10.0):
-
-        pars = camb.CAMBparams()
-        pars.set_cosmology(
-            H0=self.H0, ombh2=self.ob * self.h**2, omch2=self.ocdm * self.h**2
-        )
-        pars.InitPower.set_params(ns=self.ns)
-
-        pars.set_matter_power(redshifts=[z], kmax=2.0)
-        pk = get_matter_power_interpolator(pars)
-
-        return pk
 
     def set_cosmo_colossus(self):
         params = {
-            "flat": True,
-            "H0": self.H0,
-            "Om0": self.om,
-            "Ob0": self.ob,
-            "sigma8": self.sigma8,
+            "flat": False,
+            "H0": 100 * self.h,
+            "Ode0": self.omega_lambda,
+            "Om0": self.omega_m,
+            "Ob0": self.omega_b,
+            "sigma8": self.sigma_8,
             "ns": self.ns,
         }
         col_cosmology.addCosmology("myCosmo", params)
-        cosmo_col = col_cosmology.setCosmology("myCosmo")
-
-        print(cosmo_col)
-
-    def hmf_setup(
-        self, z, Mmin, Mmax, q_out="dndlnM",
-        halo_model = inp.astro_params['halo_model'],
-        mdef = inp.astro_params['halo_mass_def'],
+        self.cosmo_col = col_cosmology.setCosmology("myCosmo")
         
+
+    
+    def hmf_setup(
+        self, z, q_out="dndlnM",
+        halo_model=None,
+        mdef=None, set_colossus_cosmology=True,
     ):
+        
+        if halo_model is None:
+            halo_model = self.halo_model
 
-
+        if mdef is None:
+            mdef = self.halo_mass_def
+            
         Mh = 10 ** (
-            np.linspace(np.log10(Mmin), np.log10(Mmax), num=200)
+            np.linspace(np.log10(self.M_min), np.log10(self.M_max), num=200)
         )  # M_sun/h unit
-
-        # mfunc = mass_function.massFunction(Mh, z, mdef = self.halo_model_mdef, model = self.halo_model, q_out = q_out)
 
         mfunc = mass_function.massFunction(
             Mh, z, mdef=mdef, model=halo_model, q_out=q_out
         )
 
         return Mh, mfunc
-
     
-    def bias_dm(self, m, z, 
-                bias_model = inp.astro_params['bias_model'],
-                mdef = inp.astro_params['bias_mass_def']):
+    
+    def bias_dm(self, m, z, bias_model=None, mdef=None):
+        """
+        Calculate the halo bias for dark matter.
         
-        b = bias.haloBias(m, z=z, model= bias_model, mdef= mdef)
+        Parameters:
+            m (float or array): Halo mass in units of M_sun/h.
+            z (float or array): Redshift.
+            bias_model (str, optional): Halo bias model (default: None).
+            mdef (str, optional): Halo mass definition (default: None).
+            
+        Returns:
+            float or array: Halo bias.
+        """
+        
+        if bias_model is None:
+            bias_model = self.bias_model
+        if mdef is None:
+            mdef = self.bias_mass_def
+
+        b = bias.haloBias(m, z=z, model=bias_model, mdef=mdef)
         return b
+    
+    
+    
+    def angle_to_comoving_size(self, z, angle):
+        """
+        Get the comoving size for an angle at redshift z.
+
+        Parameters
+        ----------
+        z: float
+            Redshift
+        angle: float
+            Angle in radians.
+
+        Returns
+        -------
+        size: float
+            Size in Mpc/h.
+        """
+        dc = self.D_co(z)
+
+        
+        size = angle * dc
+        return size
+    
+    
+    
+    def comoving_boxsize_to_angle(self, z, boxsize):
+        """
+        Angle subtended by the surface of a box at redshift z.
+
+        Parameters
+        ----------
+        z: float
+            Redshift
+        boxsize: float
+            The length of the box in Mpc/h.
+
+        Returns
+        -------
+        theta_rad: float
+            Angle in radians.
+        """
+        da = self.D_co(z)
+        theta_rad = boxsize / da
+        return theta_rad
+    
+    
+    def angle_to_comoving_boxsize(self, z, angle, angle_unit="degree"):
+        """
+        Angle subtended by the surface of a box at redshift z.
+
+        Parameters
+        ----------
+        z: float
+            Redshift
+        angle: float
+            The angle in radians or degrees defined by angle_unit.
+        angle_unit: str, optional
+            The unit of angle, either "degree" or "radian".
+
+        Returns
+        -------
+        boxsize: float
+            The comoving box size in Mpc/h.
+        """
+        if angle_unit == "degree":
+            theta_rad = angle * np.pi / 180
+        elif angle_unit == "radian":
+            theta_rad = angle
+        else:
+            raise ValueError("Invalid angle_unit. Use 'degree' or 'radian'.")
+
+        da = self.D_co(z)
+        boxsize = theta_rad * da
+        return boxsize
+    
+    
+    def physical_boxsize_to_angle(self, z, boxsize):
+        """
+        Angle subtended by the surface of a box at redshift z.
+
+        Parameters
+        ----------
+        z: float
+            Redshift
+        boxsize: float
+            The physical box size in Mpc/h.
+
+        Returns
+        -------
+        angle: float
+            The angle in radians subtended by the box at the given redshift.
+        """
+        da = self.D_angular(z)
+        angle = boxsize / da
+        return angle
+    
+    
+
+    def length_projection(self, z=None, dz=None, nu_obs=None, dnu=None, line_name="CII"):
+        """
+        This function returns the projection length for the frequency resolution, dnu_obs.
+
+        Parameters
+        ----------
+        z: float
+            Redshift
+
+        dz: float
+            Redshift bin size. z and dz have to be passed together.
+
+        nu_obs: float
+            Observational frequency in GHz.
+
+        dnu_obs: float
+            Observational frequency resolution in GHz.
+
+        line_name: str
+            The name of the lines. Check "line_list" to get all the available lines.
+
+        Returns
+        -------
+        boxsize: float
+            The comoving box size in (Mpc/h)
+        """
+
+        if (z is None and dz is not None) or (z is not None and dz is None):
+            raise ValueError(
+                "Specify z and dz together to calculate the projection length calculation."
+            )
+
+        if (nu_obs is None and dnu is not None) or (nu_obs is not None and dnu is None):
+            raise ValueError(
+                "Specify nu_obs and dnu together to calculate the projection length calculation."
+            )
+
+        if (z is None and dz is None) and (nu_obs is None and dnu is None):
+            raise ValueError(
+                "Either specify z and dz together or nu_obs and dnu together for projection length calculation."
+            )
+
+        if z != None and dz != None:
+            dco1 = self.D_co(z)
+            dco2 = self.D_co(z + dz)
+            res = dco2 - dco1
+
+        if nu_obs != None and dnu != None:
+            z_obs1 = inp.nu_obs_to_z(nu_obs, line_name=line_name)
+            z_obs2 = inp.nu_obs_to_z((nu_obs + dnu), line_name=line_name)
+
+            dco1 = self.D_co(z_obs1)
+            dco2 = self.D_co(z_obs2)
+            res = dco1 - dco2
+
+        return res
+    
+    
+    def box_freq_to_quantities(self, nu_obs=280, dnu_obs=2.8, boxsize=80, ngrid=512, z_start=None, line_name="CII158"):
+        nu_rest = inp.nu_rest(line_name=line_name)
+        cell_size = boxsize / ngrid
+        
+        if z_start:
+            z_em = z_start
+        else:
+            z_em = (nu_rest / nu_obs) - 1
+        
+        dz_em = nu_rest * dnu_obs / (nu_obs * (nu_obs + dnu_obs))
+        d_chi = self.D_co(z_em + dz_em) - self.D_co(z_em)
+        d_ngrid = int(d_chi / cell_size)
+        
+        return round(z_em, 2), round(dz_em, 2), d_chi, d_ngrid
+        
+
+    def comoving_size_to_delta_nu(self, length, z, line_name="CII158"):
+        nu_rest_line = inp.nu_rest(line_name=line_name)
+
+        dchi_dz = inp.c_in_mpc / self.H_z(z)
+
+        dnu = (length) * nu_rest_line / (dchi_dz * (1 + z) ** 2)
+
+        return dnu
+    
+
+    def V_pix(self, theta_beam, delta_nu, beam_unit="arcmin", line_name="CII158"):
+        """
+        theta_beam: beam size in arc-min
+        delta_nu: the frequency resolution in GHz
+        line_name: name of the line
+        """
+
+        theta_rad = self.convert_beam_unit_to_radian(theta_beam, beam_unit=beam_unit)
+
+        nu = inp.nu_rest(line_name)
+
+        lambda_line = self.freq_to_lambda(nu)
+
+        y = lambda_line * (1 + self.z) ** 2 / self.H_z(self.z)
+        res = self.D_co(self.z) ** 2 * y * (theta_rad) ** 2 * delta_nu
+        return res  # (Mpc/h)^3
+    
+    
+    
+    
