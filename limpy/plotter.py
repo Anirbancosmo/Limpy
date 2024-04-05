@@ -8,9 +8,12 @@ Created on Sun Mar 10 13:07:29 2024
 
 import numpy as np
 import matplotlib.pyplot as plt
+from chainconsumer import Chain, ChainConsumer 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import limpy.utils as lu
 import limpy.lines as ll
+import limpy.inputs as inp
+
 
 class plot:
     @staticmethod
@@ -558,11 +561,47 @@ class plot:
 
         plt.tight_layout()
         plt.savefig("slice_plot.pdf", bbox_inches="tight")
+        
+        
+        
+    @staticmethod
+    def plot_chain_from_covariance(Fisher_matrices, params_fishers, params_label=None, set_names=None):
+        if not isinstance(Fisher_matrices, list):
+            raise ValueError("Fisher_matrices must be a list of Fisher matrices")
+        if len(Fisher_matrices) != len(params_fishers):
+            raise ValueError("Length of Fisher_matrices and params_fishers must be the same")
+        
+        if params_label is None:
+            params_label = list(params_fishers[0].keys())
+        else:
+            params_label = params_label
+
+        c = ChainConsumer()
+
+        for idx, (Fisher_matrix, params_fisher) in enumerate(zip(Fisher_matrices, params_fishers)):
+            if set_names is None:
+                set_name = f"set {idx + 1}"
+            else:
+                set_name = set_names[idx] if idx < len(set_names) else f"set {idx + 1}"
 
 
-        
-        
-        
+            mean = list(params_fisher.values())
+            
+            cov_3d = np.linalg.inv(Fisher_matrix)
+
+            chain_plot = Chain.from_covariance(
+                mean,
+                cov_3d,
+                columns=params_label,
+                name= set_name,
+                color= inp.color_list[idx],
+                labels= params_label,
+                linestyle="-",
+            )
+            c.add_chain(chain_plot)
+
+        fig = c.plotter.plot()
+        fig.savefig("contour_plot.jpeg", bbox_inches="tight")
         
 
         

@@ -8,6 +8,7 @@ Created on Tue Jun  9 11:57:35 2020
 
 import numpy as np
 import limpy.inputs as inp
+from astropy import units as u
 
 
 # Name of all lines
@@ -220,6 +221,41 @@ def line_scattered_params_alma(line_name="CII158"):
     return dict_obj
 
 
+def planck_co_unit_conversition(quant_k_kms2, line_name="CO10", Tcmb = 2.7255):
+    if line_name.lower() == "co10":
+        nu_planck = 110
+        factor = 1.42e-5
+
+    if line_name.lower() == "co21":
+        nu_planck = 217
+        factor = 4.5e-5
+
+    if line_name.lower() == "co32":
+        nu_planck = 353
+        factor = 17.37e-5
+
+    quant_k_cmb_unit = factor * quant_k_kms2
+    Tcmb = Tcmb * u.K
+    nu_planck *=u.GHz
+    
+    equiv = u.thermodynamic_temperature(nu_planck, Tcmb)
+    res = quant_k_cmb_unit * (1. * u.K).to(u.Jy / u.sr, equivalencies=equiv)
+    return res.value
+    
+
+
+def micrometer_to_GHz(wavelength):
+    """
+    Convert wavelength from micrometers to GHz.
+
+    Parameters:
+        wavelength (float): Wavelength in micrometers.
+
+    Returns:
+        float: Frequency in GHz.
+    """
+    c = inp.c_in_m # Speed of light in meters per second
+    return c / (wavelength * 1e-6) / inp.ghz_to_hz  # Convert wavelength to meters and then to GHz
 
 
 

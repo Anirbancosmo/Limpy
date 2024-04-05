@@ -9,7 +9,7 @@ from colossus.lss import bias, mass_function
 import limpy.inputs as inp
 
 class cosmo:
-    def __init__(self, parameters=None):
+    def __init__(self, parameters=None, print_params=False):
         
         if parameters is None:
             parameters = inp.parameters_default 
@@ -42,9 +42,10 @@ class cosmo:
         #Initialize cosmological parameters for colossus
         #set_cosmo = self.set_cosmo_colossus()
         
-        print("<---Parameters used in cosmo.py--->:")
-        print("Hubble constant (h):", self.h)
-        print("Omega matter (Omega_m):", self.omega_m)
+        if print_params:
+            print("<---Parameters used in cosmo.py--->:")
+            print("Hubble constant (h):", self.h)
+            print("Omega matter (Omega_m):", self.omega_m)
 
     def E_z(self, z):
         return np.sqrt(self.omega_m * (1 + z) ** 3 + self.omega_k * (1 + z) ** 2 + self.omega_lambda)

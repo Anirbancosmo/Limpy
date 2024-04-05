@@ -23,7 +23,6 @@ pl.rcParams["axes.labelsize"] = "15"
 
 
 import limpy.cosmos as cosmos
-
 small_h = cosmos.cosmo().h
 
 ################################################################################
@@ -1526,8 +1525,8 @@ def mhalo_to_lco_fit(
     f_duty=0.1,
     model_name="Visbal10",
     sfr_model="Behroozi19",
-    use_scatter=False,
-    params_fisher=None,
+
+    parameters=None,
 ):
 
     if model_name == "Visbal10":
@@ -1545,8 +1544,7 @@ def mhalo_to_lco_fit(
             z,
             line_name=line_name,
             sfr_model=sfr_model,
-            use_scatter=use_scatter,
-            params_fisher=params_fisher,
+            parameters=parameters,
         )
     return L_line
 
@@ -1558,8 +1556,7 @@ def mhalo_to_Oxygen_fit(
     f_duty=0.1,
     model_name="Visbal10",
     sfr_model="Behroozi19",
-    use_scatter=False,
-    params_fisher=None,
+    parameters=None,
 ):
 
     if model_name == "Visbal10":
@@ -1586,8 +1583,7 @@ def mhalo_to_Oxygen_fit(
             z,
             line_name=line_name,
             sfr_model=sfr_model,
-            use_scatter=use_scatter,
-            params_fisher=params_fisher,
+            parameters=parameters
         )
 
     return L_line
@@ -1640,85 +1636,7 @@ def mhalo_to_lline(
     return L_line
 
 
-def calc_luminosity(
-    boxsize,
-    ngrid,
-    halocat_file,
-    halo_redshift,
-    sfr_model="Behroozi19",
-    line_name="CII158",
-    halo_cutoff_mass=1e11,
-    nproj=None,
-    use_scatter=False,
-    halocat_type="input_cat",
-    params_fisher=None,
-    zg=8.8
-):
-    """
-    Calculate luminosity grid based on halo properties.
 
-    Parameters:
-    -----------
-    boxsize : float
-        Size of the simulation box in Mpc/h.
-    ngrid : int
-        Number of grid cells per dimension.
-    halocat_file : str
-        File path to the halo catalog.
-    halo_redshift : float
-        Redshift of the halos.
-    sfr_model : str, optional
-        Star formation rate model (default is "Behroozi19").
-    line_name : str, optional
-        Name of the spectral line (default is "CII158").
-    halo_cutoff_mass : float, optional
-        Minimum halo mass in solar masses (default is 1e11).
-    nproj : int, optional
-        Number of projections (default is None).
-    use_scatter : bool, optional
-        Whether to use scatter in the model (default is False).
-    halocat_type : str, optional
-        Type of halo catalog (default is "input_cat").
-    params_fisher : dict, optional
-        Parameters for Fisher forecast (default is None).
-    zg : float, optional
-        Redshift of the galaxy formation (default is 8.8).
-
-    Returns:
-    --------
-    numpy.ndarray
-        Luminosity grid calculated based on the specified parameters.
-    """
-    # Make halocat
-    halomass, halo_cm = lu.make_halocat(
-        halocat_file, halocat_type=halocat_type, mmin=halo_cutoff_mass, boxsize=boxsize
-    )
-
-    # Calculate luminosity line
-    lum_line = mhalo_to_lline(
-        halomass,
-        halo_redshift,
-        sfr_model=sfr_model,
-        line_name=line_name,
-        use_scatter=use_scatter,
-        params_fisher=params_fisher,
-        zg=zg
-    )
-
-    # Make grid
-    grid = lu.make_grid(halo_cm, weight=lum_line, boxsize=boxsize, ngrid=ngrid)
-
-    if nproj:
-        # Slice grid if projection is required
-        grid_lum = lu.slice_2d(grid, boxsize, nproj, operation="sum", axis=2)
-    else:
-        grid_lum = grid
-
-    return grid_lum
-
-
-
-            
 class line_modeling:
     def __init__(self, line_name="CII158", 
                  model_name="Silva15-m1", 
@@ -1727,12 +1645,9 @@ class line_modeling:
         
         if parameters is None:
             # Assuming line parameters are already imported from input.py outside the class
-            
             self.parameters = inp.parameters_default 
-        
         else:
             # Fill in missing parameters with defaults from input.py
-            
             self.parameters = {**inp.parameters_default, **parameters}
 
         self.line_name = line_name
@@ -1768,9 +1683,8 @@ class line_modeling:
                 model_name=self.model_name,
                 sfr_model=self.sfr_model,
                 parameters=self.parameters
-                
             )
-            line_with_scatter = Line_lum + Line_lum * self.scatter_dex * np.random.normal(0, 1, len(Line_lum))
+            line_with_scatter = Line_lum * (1 + self.scatter_dex * np.random.normal(0, 1, len(Mhalo)))
             return line_with_scatter
         
         elif self.use_scatter and self.model_name == "alma_scalling":
@@ -1783,20 +1697,19 @@ class line_modeling:
             
             params_list = np.random.multivariate_normal(params_mean, cov_scatter_matrix, size=len(Mhalo))
             
-            result = []
-            for i in range(len(Mhalo)): 
-                line_with_scatter = mhalo_to_lline_alma(
+            # Calculate line luminosity for all halos at once
+            line_with_scatter = np.array([
+                mhalo_to_lline_alma(
                     Mhalo[i],
                     z,
                     line_name=self.line_name,
                     sfr_model=self.sfr_model,
-                    parameters={'a_off': params_list[:,0][i], 'b_off': params_list[:,1][i]}
-                )
-                result.append(line_with_scatter)
+                    parameters={'a_off': params_list[i, 0], 'b_off': params_list[i, 1]}
+                ) for i in range(len(Mhalo))
+            ])
             
-            return result
+            return line_with_scatter
 
-            
 
 class lim_sims:
     def __init__(self, halocat_file, halo_redshift, sfr_model="Behroozi19",
@@ -1899,9 +1812,10 @@ class lim_sims:
                 z_start=self.halo_redshift,
                 line_name=self.line_name
             )
-            Ngrid_new = min(int(self.ngrid_z / d_ngrid), 1)
-            d_ngrid = min(d_ngrid, self.ngrid_z)
-        else:
+            Ngrid_new = int(self.ngrid_z / d_ngrid) if d_ngrid < self.ngrid_z else 1
+            d_ngrid = d_ngrid if d_ngrid < self.ngrid_z else self.ngrid_z
+            
+        if self.dnu_obs is None:
             Ngrid_new = self.ngrid_z
             d_ngrid = self.ngrid_z
 
@@ -1909,8 +1823,6 @@ class lim_sims:
         Igcal = self.make_quantity_grid()
 
         return Igcal
-    
-    
     
     
     def make_quantity_rectangular_grid_z_evo(self):
@@ -1925,6 +1837,8 @@ class lim_sims:
             )
             Ngrid_new = int(self.ngrid_z / d_ngrid) if d_ngrid < self.ngrid_z else 1
             d_ngrid = d_ngrid if d_ngrid < self.ngrid_z else self.ngrid_z
+            
+            print("The quantities are", zem, dz, dchi, d_ngrid)
 
         # if dnu_obs is None, then ngrid along z axis will remain unchanged.
         if self.dnu_obs is None:
@@ -2103,7 +2017,7 @@ class lim_sims:
 
 
 class theory:
-    def __init__(self, parameters=None):
+    def __init__(self, parameters=None, print_params=False):
         
         if parameters is None:
             self.parameters = inp.parameters_default 
@@ -2114,10 +2028,11 @@ class theory:
         self.cosmo_setup = cosmos.cosmo(self.parameters)
         self.small_h = self.cosmo_setup.h
         
-        print("<--- Parameters used in lines.py--->:")
-        print("Hubble constant (h):", self.cosmo_setup.h)
-        print("Omega matter (Omega_m):", self.cosmo_setup.omega_m)
-        
+        if print_params:
+            print("<--- Parameters used in lines.py--->:")
+            print("Hubble constant (h):", self.cosmo_setup.h)
+            print("Omega matter (Omega_m):", self.cosmo_setup.omega_m)
+            
         
     def N_cen(self, M, M_min=1e8, sigma_logm=0.15):
         res = 0.5 * (1 + erf((np.log10(M) - np.log10(M_min)) / sigma_logm))
@@ -2144,7 +2059,7 @@ class theory:
         else:
             return Mass_bin, dndm
 
-    def I_line(self, z, line_name="CII158", model_name="Silva15-m1", sfr_model="Silva15", HOD_model=False, params_fisher=None):
+    def I_line(self, z, line_name="CII158", model_name="Silva15-m1", sfr_model="Silva15", HOD_model=False):
         
         mass_bin, dndlnM = self.hmf(z, HOD_model=HOD_model)
         
@@ -2162,8 +2077,29 @@ class theory:
         integrand = factor * dndlnM * L_line
         integration = simps(integrand, x = np.log(mass_bin))
         return integration * conversion_fac
+    
+    
+    
+    def I_line_from_luminosity(self, z, L_line, line_name = "CO32"):
+        
+        factor = (inp.c_in_mpc) / (4 * np.pi * inp.nu_rest(line_name=line_name) * self.cosmo_setup.H_z(z))
+        conversion_fac = 4.0204e-2  # jy/sr
+    
+        return factor * L_line * conversion_fac
+    
+    
+    def I_line_from_luminosity_zbin(self, zmin, zmax, L_line, line_name = "CO32"):
+        zrange = np.linspace(zmin, zmax, num=20)
+        
+        I_line= self.I_line_from_luminosity(zrange, L_line, line_name = line_name)
+        
+        result = simps(I_line, x = zrange)
+        
+        return  result
+    
 
-    def P_shot_gong(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False, params_fisher=None):
+    
+    def P_shot_gong(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False):
         mass_bin, dndlnM = self.hmf(z, HOD_model=HOD_model)
         #L_line = ll.mhalo_to_lline(mass_bin, z, line_name=line_name, sfr_model=sfr_model, model_name=model_name, params_fisher=params_fisher)
         
@@ -2182,13 +2118,13 @@ class theory:
         conversion_fac = 4.0204e-2 # jy/sr
         return int_numerator * factor**2 * conversion_fac**2
 
-    def T_line(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False, params_fisher=None):
-        Intensity = self.I_line(z, line_name=line_name, model_name=model_name, sfr_model=sfr_model, HOD_model=HOD_model, params_fisher=params_fisher)
+    def T_line(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False):
+        Intensity = self.I_line(z, line_name=line_name, model_name=model_name, sfr_model=sfr_model, HOD_model=HOD_model)
         nu_obs = inp.nu_rest(line_name=line_name) / (1 + z)
         T_line = inp.c_in_mpc**2 * Intensity / (2 * inp.kb_si * nu_obs**2)
         return T_line  # in muK
 
-    def P_shot(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False, params_fisher=None):
+    def P_shot(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False):
         mass_bin, dndlnM = self.hmf(z, HOD_model=HOD_model)
         # Initialize LineConverter
         line_converter = line_modeling(
@@ -2207,7 +2143,7 @@ class theory:
         int_denominator = simps(integrand_denominator,  x =np.log(mass_bin))
         return int_numerator / int_denominator**2
 
-    def b_line(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False, params_fisher=None):
+    def b_line(self, z, line_name="CII158", sfr_model="Silva15", model_name="Silva15-m1", HOD_model=False):
         mass_bin, dndlnM = self.hmf(z, HOD_model=HOD_model)
         
         
@@ -2228,7 +2164,7 @@ class theory:
     
     
     
-    def Pk_line(self, k, z, line_name="CII158", label="total", sfr_model="Silva15", model_name="Silva15-m1", pk_unit="intensity", HOD_model=False, params_fisher=None):
+    def Pk_line(self, k, z, line_name="CII158", label="total", sfr_model="Silva15", model_name="Silva15-m1", pk_unit="intensity", HOD_model=False):
         if pk_unit == "intensity":
             I_nu_square = (
                 self.I_line(
@@ -2237,7 +2173,7 @@ class theory:
                     model_name=model_name,
                     sfr_model=sfr_model,
                     HOD_model=HOD_model,
-                    params_fisher=params_fisher
+                    
                 )
                 ** 2
             )
@@ -2245,16 +2181,16 @@ class theory:
 
             if label == "total":
                 res = I_nu_square * self.b_line(
-                    z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
+                    z, line_name=line_name, model_name=model_name, HOD_model=HOD_model
                 ) ** 2 * pk_lin + I_nu_square * self.P_shot(
-                    z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
+                    z, line_name=line_name, model_name=model_name, HOD_model=HOD_model
                 )
 
             if label == "clustering":
                 res = (
                     I_nu_square
                     * self.b_line(
-                        z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
+                        z, line_name=line_name, model_name=model_name, HOD_model=HOD_model
                     )
                     ** 2
                     * pk_lin
@@ -2262,7 +2198,7 @@ class theory:
 
             if label == "shot":
                 res = I_nu_square * self.P_shot(
-                    z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
+                    z, line_name=line_name, model_name=model_name, HOD_model=HOD_model
                 )
 
             return res
@@ -2273,8 +2209,7 @@ class theory:
                     z,
                     line_name=line_name,
                     model_name=model_name,
-                    sfr_model=sfr_model,
-                    params_fisher=params_fisher
+                    sfr_model=sfr_model   
                 )
                 ** 2
             )
@@ -2282,12 +2217,12 @@ class theory:
             if label == "total":
                 res = T_line_square * (
                     self.b_line(
-                        z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
+                        z, line_name=line_name, model_name=model_name, HOD_model=HOD_model
                     )
                     ** 2
                     * pk_lin
                     + self.P_shot(
-                        z, line_name=line_name, model_name=model_name, HOD_model=HOD_model, params_fisher=params_fisher
+                        z, line_name=line_name, model_name=model_name, HOD_model=HOD_model
                     )
                 )
 
@@ -2299,7 +2234,6 @@ class theory:
                         sfr_model=sfr_model,
                         model_name=model_name,
                         HOD_model=HOD_model,
-                        params_fisher=params_fisher
                     )
                     ** 2
                     * pk_lin
@@ -2313,12 +2247,12 @@ class theory:
                         sfr_model=sfr_model,
                         model_name=model_name,
                         HOD_model=HOD_model,
-                        params_fisher=params_fisher
                     )
                 )
                 res = res
 
             return res
+    
     
     
     def window_gauss(self, z, z_mean, deltaz):
@@ -2338,7 +2272,6 @@ class theory:
         sfr_model="Silva15",
         model_name="Silva15-m1",
         pk_unit="temperature",
-        params_fisher=None
     ):
         chi = self.cosmo_setup.D_co(z)
         kp = ell / chi
@@ -2352,7 +2285,6 @@ class theory:
                 model_name=model_name,
                 label=label,
                 pk_unit=pk_unit,
-                params_fisher=params_fisher
             )
             for z in zint
         ]
@@ -2368,4 +2300,120 @@ class theory:
         )
         res = simps(integrand,  x =zint, axis=1)
         return res
+    
+    
+    
+    def pk3d_interloper(self, k, sfr_model="Silva15", model_name="Alma_scalling", nu_obs=None, dnu_obs=None, exclude_line='CII158', zlim=10, HOD_model=False):
+        
+        if nu_obs is None or dnu_obs is None:
+            raise ValueError("You should provide the values of nu_obs and dnu_obs to estimate the redshift of interloping lines")
+    
+        z_int, _, int_line_names = lu.get_lines_same_frequency(inp.int_line_list, nu_obs=nu_obs, dnu_obs=dnu_obs, zlim=zlim)
+        pk_total = []
+    
+        for z, int_line_name in zip(z_int, int_line_names):
+            print("Calculating interloper powerspectrum for {:s} lines at z={:.2f}".format(int_line_name, z))
+            pk_int = self.Pk_line(k, z, model_name=model_name, line_name=int_line_name, sfr_model=sfr_model, HOD_model=HOD_model)
+            pk_total.append(pk_int)
+    
+        pk_final = np.sum(pk_total, axis=0)
+    
+        return pk_final
+    
+    
+    
+
+class cib_modelling:
+    def __init__(self, parameters= None):
+        
+        if parameters is None:
+            # Use default parameters
+            self.parameters = inp.parameters_default 
+        
+        else:
+            # Fill in missing parameters with defaults
+            self.parameters = {**inp.parameters_default, **parameters}
+            
+        self.L_IR_cib = self.parameters["L_IR_cib"] * inp.Lsun
+        self.Td_cib = self.parameters["Td_cib"]
+        self.beta_cib = self.parameters["beta_cib"]
+        
+        self.cosmo_setup = cosmos.cosmo(self.parameters)
+        
+        self.nu_space = np.linspace(200, 37474, num=500)
+        self.integrand = self.nu_space ** self.beta_cib * \
+                        self.planck_blackbody_spectrum(self.nu_space, self.Td_cib )
+                        
+                        
+        self.denominator = simps(self.integrand, x = self.nu_space)
+        
+        
+    def planck_blackbody_spectrum1(self, nu, T, unit="si"):
+        """
+        Calculate the Planck blackbody spectrum.
+    
+        Parameters:
+            T (float): Temperature in Kelvin.
+            nu (float or numpy array): Frequency in GHz.
+    
+        Returns:
+            numpy array: Planck blackbody spectrum values.
+        """
+        # Convert frequency from GHz to Hz
+        nu = nu * 1e9
+        
+        # Planck blackbody spectrum formula
+        spectrum = (2 * inp.h_planck * nu**3 / inp.c_in_m**2) / (np.exp(inp.h_planck * nu / (inp.kb * T)) - 1)
+        if unit=="jy/sr":
+            return spectrum * 1e26 # In Jy/Sr unit
+        else:
+            return spectrum 
+        
+        
+    def planck_blackbody_spectrum(self, nu, T, unit="si"):
+        """
+        Calculate the Planck blackbody spectrum.
+    
+        Parameters:
+            T (float): Temperature in Kelvin.
+            nu (float or numpy array): Frequency in GHz.
+    
+        Returns:
+            numpy array: Planck blackbody spectrum values.
+        """
+        # Convert frequency from GHz to Hz
+        nu = nu * 1e9
+    
+        # Planck blackbody spectrum formula
+        exponent = inp.h_planck * nu / (inp.kb * T)
+        spectrum = (2 * inp.h_planck * nu**3 / inp.c_in_m**2) / (np.exp(exponent) - 1)
+        
+        if unit=="jy/sr":
+            return spectrum * 1e26  # In Jy/Sr unit
+        else:
+            return spectrum
+
+        
+        
+    def S_cib(self, nu_rest, z, alpha_td=0.2):
+        
+        
+        Td_z = self.Td_cib  #* (1 + z)** alpha_td
+        
+        nu_obs = (1+z) * nu_rest
+        
+        dco=self.cosmo_setup.D_co(z) * inp.mpc_to_m 
+        
+        res = self.L_IR_cib /(4.0 * np.pi * (1+ z) * dco**2)
+        
+        res *=  nu_obs ** self.beta_cib  * self.planck_blackbody_spectrum(nu_obs, Td_z)
+        res /= self.denominator
+        
+        return res * 1e26 # In Jy/Sr unit
+    
+
+        
+    
+    
+    
     
