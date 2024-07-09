@@ -10,7 +10,7 @@ import os.path
 from astropy.convolution import Gaussian2DKernel, convolve
 
 #from astropy.modeling.models import Gaussian2D
-from scipy.interpolate import RectBivariateSpline
+from scipy.interpolate import RectBivariateSpline, RegularGridInterpolator, interp1d
 from scipy.integrate import simpson as simps
 import limpy.utils as lu
 import limpy.inputs as inp
@@ -41,6 +41,11 @@ sfr_file_paths = {
     "Behroozi19": os.path.join(DATA_DIR, 'sfr_Behroozi.dat'),
     "Tng100": os.path.join(DATA_DIR, 'sfr_processed_TNG100-1.npz'),
     "Tng300": os.path.join(DATA_DIR, 'sfr_processed_TNG300-1.npz')
+}
+
+
+Roy24_file_path = {
+    "Roy24": os.path.join(DATA_DIR, 'LCII_Roy24.npz')
 }
 
 
@@ -75,6 +80,36 @@ def get_sfr_interpolation(sfr_model):
         f.close()
     
     return sfr_interpolations[sfr_model]
+
+
+def get_Roy24_CII_interpolation(line_name = "CII158"):
+    mstar_mhalo_interp = {}
+    mstar_Luminosity_interp= {}
+    
+    if line_name == "CII158":
+        roy2024_file =  np.load(Roy24_file_path["Roy24"])
+        mstar_roy = roy2024_file['mstar']
+        mhalo_roy = roy2024_file['mhalo']
+        z_roy = roy2024_file['z']
+        Lcii_roy = roy2024_file['LCII']
+        
+        mstar_mhalo_interp[line_name] = RegularGridInterpolator((np.log10(mstar_roy), z_roy), np.log10(mhalo_roy), method='linear', bounds_error=False)
+        mstar_Luminosity_interp[line_name] = RegularGridInterpolator((np.log10(mstar_roy), z_roy), np.log10(Lcii_roy), method='linear', bounds_error=False)
+    
+    return mstar_mhalo_interp[line_name], mstar_Luminosity_interp[line_name]
+    
+    
+
+def mhalo_to_lline_Roy24(mhalo, z, line_name = "CII158"):
+    mstar_mhalo_interp, mstar_Luminosity_interp = get_Roy24_CII_interpolation(line_name = line_name)
+    log_mstar_range = np.linspace(5, 13)
+    log_mhalo = mstar_mhalo_interp ((log_mstar_range, z))
+    
+    log_Mstar =interp1d(log_mhalo, log_mstar_range )(np.log10(mhalo))
+    return 10 ** mstar_Luminosity_interp  ((log_Mstar, z))
+    
+    
+
 
 def mhalo_to_sfr(Mhalo, z, sfr_model = "Behroozi19"):
     """
@@ -1514,6 +1549,9 @@ def mhalo_to_lcp_fit(
             sfr_model=sfr_model,
             parameters=parameters
         )
+        
+    if model_name == "Roy24":
+        LCII = mhalo_to_lline_Roy24(Mhalo, z, line_name = "CII158")
 
     return LCII
 
@@ -2058,6 +2096,7 @@ class theory:
             return Mass_bin, dndm * self.N_M_hod(Mass_bin)
         else:
             return Mass_bin, dndm
+        
 
     def I_line(self, z, line_name="CII158", model_name="Silva15-m1", sfr_model="Silva15", HOD_model=False):
         
@@ -2093,7 +2132,7 @@ class theory:
         
         I_line= self.I_line_from_luminosity(zrange, L_line, line_name = line_name)
         
-        result = simps(I_line, x = zrange)
+        result = simps(I_line, x = zrange)/(zmax-zmin)
         
         return  result
     
@@ -2394,9 +2433,8 @@ class cib_modelling:
             return spectrum
 
         
-        
+
     def S_cib(self, nu_rest, z, alpha_td=0.2):
-        
         
         Td_z = self.Td_cib  #* (1 + z)** alpha_td
         

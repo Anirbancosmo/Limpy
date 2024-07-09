@@ -15,16 +15,19 @@ except ImportError:
 	have_setuptools = False
 
 setup_kwargs = {
-'name': 'limpy', 
-'version': '2.0', 
-'description': 'Line Intensity Mapping code in PYthon', 
-'author': 'Anirban Roy', 
-'author_email': 'anirbanroy.personal@gmail.com', 
-'packages':['limpy'],
-'package_data': {'limpy': ['data/*']},
-'include_package_data': True,
-'zip_safe': False, 
-'install_requires':['camb', 'colossus', 'astropy']}
+    'name': 'limpy', 
+    'version': '2.0', 
+    'description': 'Line Intensity Mapping code in Python', 
+    'author': 'Anirban Roy', 
+    'author_email': 'anirbanroy.personal@gmail.com', 
+    'packages': ['limpy'],
+    'package_data': {
+        'limpy': ['data/*.dat', 'data/*.npz']
+    },
+    'include_package_data': True,
+    'zip_safe': False, 
+    'install_requires': ['camb', 'colossus', 'astropy']
+}
 
 
 if __name__ == '__main__': 
