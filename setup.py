@@ -8,11 +8,11 @@ Created on Wed Jun  3 23:03:21 2020
 
 import sys 
 try:
-	from setuptools import setup
-	have_setuptools = True 
+    from setuptools import setup
+    have_setuptools = True 
 except ImportError:
-	from distutils.core import setup 
-	have_setuptools = False
+    from distutils.core import setup 
+    have_setuptools = False
 
 setup_kwargs = {
     'name': 'limpy', 
@@ -22,15 +22,12 @@ setup_kwargs = {
     'author_email': 'anirbanroy.personal@gmail.com', 
     'packages': ['limpy'],
     'package_data': {
-        'limpy': ['data/*.dat', 'data/*.npz']
+        'limpy': ['data/*.dat', 'data/*.npz']  # Include all .dat and .npz files in data directory
     },
     'include_package_data': True,
     'zip_safe': False, 
     'install_requires': ['camb', 'colossus', 'astropy']
 }
 
-
 if __name__ == '__main__': 
-	setup(**setup_kwargs)
-
-
+    setup(**setup_kwargs)

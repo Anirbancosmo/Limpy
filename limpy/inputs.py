@@ -342,5 +342,3 @@ a_std_OIII_88 = 0.16
 b_off_OIII_88 = 0.97
 b_std_OIII_88 = 0.09
 
-
-

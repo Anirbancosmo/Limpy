@@ -16,6 +16,8 @@ import limpy.utils as lu
 import limpy.inputs as inp
 from scipy.special import erf
 
+import pkg_resources
+
 pl.rcParams["xtick.labelsize"] = "10"
 pl.rcParams["ytick.labelsize"] = "10"
 pl.rcParams["axes.labelsize"] = "15"
@@ -35,18 +37,18 @@ small_h = cosmos.cosmo().h
 ################################################################################
 
 
-# File paths
-DATA_DIR = os.path.join(os.path.dirname(__file__), '../data')
+
 sfr_file_paths = {
-    "Behroozi19": os.path.join(DATA_DIR, 'sfr_Behroozi.dat'),
-    "Tng100": os.path.join(DATA_DIR, 'sfr_processed_TNG100-1.npz'),
-    "Tng300": os.path.join(DATA_DIR, 'sfr_processed_TNG300-1.npz')
+    "Behroozi19": pkg_resources.resource_filename('limpy', 'data/sfr_Behroozi.dat'),
+    "Tng100": pkg_resources.resource_filename('limpy', 'data/sfr_processed_TNG100-1.npz'),
+    "Tng300": pkg_resources.resource_filename('limpy', 'data/sfr_processed_TNG300-1.npz'),
 }
 
 
 Roy24_file_path = {
-    "Roy24": os.path.join(DATA_DIR, 'LCII_Roy24.npz')
+    "Roy24": pkg_resources.resource_filename('limpy', 'data/LCII_Roy24.npz')
 }
+
 
 
 
@@ -1480,6 +1482,96 @@ def sfr_to_L_line_alma(z, sfr, line_name="CII158", parameters=None):
 
 
 
+
+def sfr_to_L_line_alma_cii_scaling(z, sfr, line_name="CII158", parameters=None):
+    """
+    Calculates luminosity of the OIII lines from SFR assuming a 3\sigma Gaussian
+    scatter. The parameter values for the scattered relation
+    are mentioned in default_params module.
+
+    Input: z and sfr
+
+    Return: luminosity of OIII lines in log scale
+    """
+
+    # Check if the line name is valid
+    if line_name not in lu.line_list:
+        raise ValueError("Not a familiar line.")
+
+    if parameters is None:
+        parameters_cii = lu.line_scattered_params_alma("CII158")
+        a_off_cii = parameters_cii['a_off']
+        b_off_cii = parameters_cii['b_off']
+        
+        a_ratio = 1
+        b_ratio  = 1
+        
+        if line_name[0:2] =="CO":
+            parameters_co = lu.line_scattered_params_alma(line_name)
+            a_off_co = parameters_co['a_off']
+            b_off_co = parameters_co['b_off']
+            
+            a_ratio = a_off_co /a_off_cii
+            b_ratio = b_off_co /b_off_cii
+            
+        
+        a_off = a_ratio *  a_off_cii 
+        b_off = b_ratio *  b_off_cii 
+            
+        
+    else:
+        defaults = lu.line_scattered_params_alma(line_name)
+        new_params = {**defaults, **parameters}
+        a_off_new = new_params['a_off']
+        b_off_new = new_params['b_off']
+        
+        a_ratio = 1
+        b_ratio  = 1
+        
+        if line_name.startswith("CO"):
+            parameters_cii = lu.line_scattered_params_alma("CII158")
+            a_off_cii = parameters_cii['a_off']
+            b_off_cii = parameters_cii['b_off']
+            
+            parameters_co = lu.line_scattered_params_alma(line_name)
+            a_off_co = parameters_co['a_off']
+            b_off_co = parameters_co['b_off']
+            
+            a_ratio = a_off_co /a_off_cii
+            b_ratio = b_off_co /b_off_cii
+            
+            print("a_ratio", a_ratio)
+            print("b_ratio", b_ratio)
+            
+        a_off = a_ratio *  a_off_new 
+        b_off = b_ratio *  b_off_new
+        print("The a_off s", a_off)
+        
+        
+        
+    # Function to calculate L_CO_log
+    def L_co_log(sfr, alpha, beta):
+        nu_co_line = inp.nu_rest(line_name)
+        L_ir_sun = sfr * 1e10
+        L_coprime = (L_ir_sun * 10 ** (-beta)) ** (1 / alpha)
+        L_co = 4.9e-5 * (nu_co_line / 115.27) ** 3 * L_coprime
+        return np.log10(L_co)
+
+    # Convert scalar inputs to arrays with at least one dimension
+    sfr = np.atleast_1d(sfr)
+
+    # Calculate log_L_line
+    if line_name == "CII158" or line_name == "OIII88":
+        log_L_line = a_off + b_off * np.log10(sfr)
+        
+    elif line_name.startswith("CO"):
+        log_L_line = L_co_log(sfr, a_off, b_off)
+
+    return 10 ** log_L_line
+
+
+
+
 def mhalo_to_lline_alma(
     Mh,
     z,
@@ -1499,6 +1591,35 @@ def mhalo_to_lline_alma(
     sfr_cal = mhalo_to_sfr(Mh, z, sfr_model=sfr_model)
 
     L_line = sfr_to_L_line_alma(
+        z,
+        sfr_cal,
+        line_name=line_name,
+        parameters = parameters
+    )
+
+    return L_line
+
+
+
+def mhalo_to_lline_alma_cii_scaling(
+    Mh,
+    z,
+    line_name="CII158",
+    sfr_model="Behroozi19",
+    parameters=None
+):
+    """
+    This function returns luminosity of lines (following the input line_name) in the unit of L_sun.
+    Kind optitions takes the SFR: mean , up (1-sigma upper bound) and
+    down (1-sigma lower bound)
+    """
+    # if
+
+    global sfr_cal, L_line
+
+    sfr_cal = mhalo_to_sfr(Mh, z, sfr_model=sfr_model)
+
+    L_line = sfr_to_L_line_alma_cii_scaling(
         z,
         sfr_cal,
         line_name=line_name,
@@ -1541,7 +1662,7 @@ def mhalo_to_lcp_fit(
     if model_name == "Schaerer20":
         LCII = LCII_Schaerer20(Mhalo, z, sfr_model=sfr_model)
 
-    if model_name == "Alma_scalling":
+    if model_name == "Alma_scaling":
         LCII = mhalo_to_lline_alma(
             Mhalo,
             z,
@@ -1549,6 +1670,17 @@ def mhalo_to_lcp_fit(
             sfr_model=sfr_model,
             parameters=parameters
         )
+        
+        
+        
+    if model_name == "Alma_cii_scaling":
+          LCII = mhalo_to_lline_alma_cii_scaling(
+              Mhalo,
+              z,
+              line_name="CII158",
+              sfr_model=sfr_model,
+              parameters=parameters
+          )
         
     if model_name == "Roy24":
         LCII = mhalo_to_lline_Roy24(Mhalo, z, line_name = "CII158")
@@ -1576,7 +1708,7 @@ def mhalo_to_lco_fit(
     if model_name == "Kamenetzky15":
         L_line = LCO_Kamenetzky15(Mhalo, z, line_name=line_name, sfr_model=sfr_model)
 
-    if model_name == "Alma_scalling":
+    if model_name == "Alma_scaling":
         L_line = mhalo_to_lline_alma(
             Mhalo,
             z,
@@ -1584,6 +1716,17 @@ def mhalo_to_lco_fit(
             sfr_model=sfr_model,
             parameters=parameters,
         )
+        
+        
+    if model_name == "Alma_cii_scaling":
+        L_line = mhalo_to_lline_alma_cii_scaling(
+            Mhalo,
+            z,
+            line_name=line_name,
+            sfr_model=sfr_model,
+            parameters=parameters,
+        )
+        
     return L_line
 
 
@@ -1615,7 +1758,7 @@ def mhalo_to_Oxygen_fit(
     if model_name == "Kannan22":
         L_line = L_lines_Thesan(Mhalo, z, line_name=line_name, sfr_model=sfr_model)
 
-    if model_name == "Alma_scalling":
+    if model_name == "Alma_scaling":
         L_line = mhalo_to_lline_alma(
             Mhalo,
             z,
@@ -1651,7 +1794,7 @@ def mhalo_to_lline(
     elif line_name[0:2] == "CO":
         L_line = mhalo_to_lco_fit(
             Mhalo, z, line_name=line_name, sfr_model =sfr_model,
-            model_name=model_name, f_duty=parameters['f_duty']
+            model_name=model_name, f_duty=0.1
         )
 
     elif line_name == "OIII88":
@@ -1713,7 +1856,7 @@ class line_modeling:
                 parameters=self.parameters
             )
         
-        elif self.use_scatter and self.model_name != "alma_scalling":
+        elif self.use_scatter and self.model_name != "alma_scaling":
             Line_lum = mhalo_to_lline(
                 Mhalo,
                 z,
@@ -1725,7 +1868,7 @@ class line_modeling:
             line_with_scatter = Line_lum * (1 + self.scatter_dex * np.random.normal(0, 1, len(Mhalo)))
             return line_with_scatter
         
-        elif self.use_scatter and self.model_name == "alma_scalling":
+        elif self.use_scatter and self.model_name == "alma_scaling":
             if self.cov_scatter_matrix is None:
                 cov_scatter_matrix = np.array([[self.a_std**2, 0], [0, self.b_std**2]])
             else:
@@ -2102,6 +2245,7 @@ class theory:
         
         mass_bin, dndlnM = self.hmf(z, HOD_model=HOD_model)
         
+        
         # Initialize LineConverter
         line_converter = line_modeling(
             line_name=line_name, model_name=model_name,
@@ -2110,6 +2254,9 @@ class theory:
         
         # Calculate luminosity or intensity line
         L_line = line_converter.line_luminosity(mass_bin, z)
+        
+        print(model_name)
+        print(L_line )
 
         factor = (inp.c_in_mpc) / (4 * np.pi * inp.nu_rest(line_name=line_name) * self.cosmo_setup.H_z(z))
         conversion_fac = 4.0204e-2  # jy/sr
@@ -2173,8 +2320,6 @@ class theory:
         
         # Calculate luminosity or intensity line
         L_line = line_converter.line_luminosity(mass_bin, z)
-        
-        
         
         integrand_numerator = dndlnM * L_line**2
         integrand_denominator = dndlnM * L_line
@@ -2342,7 +2487,7 @@ class theory:
     
     
     
-    def pk3d_interloper(self, k, sfr_model="Silva15", model_name="Alma_scalling", nu_obs=None, dnu_obs=None, exclude_line='CII158', zlim=10, HOD_model=False):
+    def pk3d_interloper(self, k, sfr_model="Silva15", model_name="Alma_scaling", nu_obs=None, dnu_obs=None, exclude_line='CII158', zlim=10, HOD_model=False):
         
         if nu_obs is None or dnu_obs is None:
             raise ValueError("You should provide the values of nu_obs and dnu_obs to estimate the redshift of interloping lines")

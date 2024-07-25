@@ -740,10 +740,11 @@ def pk_error(k, pk_signal, pk_noise, Vsurv, noise_prop = "SN", bin_num = 10, bin
             pknoise_int[i] = np.mean( pk_noise[k_indices] )
 
     if noise_prop == "ON":
-        var = (pksignal_int + pknoise_int) ** 2 / Nmodes
+        var = (pknoise_int) ** 2 / Nmodes
 
     if (noise_prop == "SN" or noise_prop == "NS"):
-        var = (pknoise_int) ** 2 / Nmodes
+        var = (pksignal_int + pknoise_int) ** 2 / Nmodes
+        
 
     return k_cen, pksignal_int, np.sqrt(var)
 
