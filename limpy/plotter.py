@@ -8,7 +8,6 @@ Created on Sun Mar 10 13:07:29 2024
 
 import numpy as np
 import matplotlib.pyplot as plt
-from chainconsumer import Chain, ChainConsumer 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import limpy.utils as lu
 import limpy.lines as ll

@@ -1892,12 +1892,301 @@ class line_modeling:
             return line_with_scatter
 
 
+
+class lim_gal:
+    def __init__(self, halo_redshift, halo_cm, luminosity, line_name="CII158",
+                 ngrid_x=128, ngrid_y=128, ngrid_z=128, boxsize_x=1, boxsize_y=1, boxsize_z=1,
+                 nu_obs=None, dnu_obs=None, theta_fwhm=None, z_evolution=False, parameters=None,
+                 quantity="intensity"):
+
+
+        self.halo_redshift = halo_redshift
+        self.line_name = line_name  
+
+        self.halo_cm = halo_cm
+        self.luminosity = luminosity
+   
+        self.ngrid_x = ngrid_x
+        self.ngrid_y = ngrid_y
+        self.ngrid_z = ngrid_z
+        self.boxsize_x = boxsize_x
+        self.boxsize_y = boxsize_y
+        self.boxsize_z = boxsize_z
+        self.nu_obs = nu_obs
+        self.dnu_obs = dnu_obs
+        self.theta_fwhm = theta_fwhm
+        self.z_evolution = z_evolution
+        
+        self.quantity = quantity
+        
+        
+        if parameters is None:
+            self.parameters = inp.parameters_default 
+        else:
+            self.parameters = {**inp.parameters_default, **parameters}
+        
+  
+        self.cosmo_setup = cosmos.cosmo(parameters)
+        self.small_h = self.cosmo_setup.h
+        
+        
+    def make_quantity_grid(self):
+        # Calculate cell size
+        cellsize_x = self.boxsize_x / self.ngrid_x
+        #cellsize_y = self.boxsize_y / self.ngrid_y
+        cellsize_z = self.boxsize_z / self.ngrid_z
+        
+        # Calculate solid angle per pixel
+        d_omega_pix = self.cosmo_setup.solid_angle(cellsize_x, self.halo_redshift)
+        
+        # Calculate comoving size to delta nu conversion factor
+        d_nu = self.cosmo_setup.comoving_size_to_delta_nu(cellsize_z, self.halo_redshift, line_name=self.line_name)
+        
+        
+        # Calculate intensity grid
+        grid_lum = lu.make_grid_rectangular(
+            self.halo_cm,
+            weight= self.luminosity,
+            ngrid_x=self.ngrid_x,
+            ngrid_y=self.ngrid_y,
+            ngrid_z=self.ngrid_z,
+            boxsize_x=self.boxsize_x,
+            boxsize_y=self.boxsize_y,
+            boxsize_z=self.boxsize_z,
+        )
+        
+        if self.quantity.lower() == "luminosity":
+            return grid_lum
+        elif self.quantity.lower() == "intensity":
+            # Calculate intensity grid
+            D_lum = self.cosmo_setup.D_luminosity(self.halo_redshift)
+            prefac = 4.0204e-2 * self.small_h ** 2  # Lsol/Mpc^2/ GHz
+            grid_intensity = (
+                prefac * (grid_lum / 4.0 / np.pi / D_lum ** 2) / d_omega_pix / d_nu
+            )  # Jy/sr
+            return grid_intensity
+        else:
+            raise ValueError("Invalid quantity specified. Must be 'luminosity' or 'intensity'.")
+
+
+    def make_quantity_rectangular_grid_no_z_evo(self):
+        if self.dnu_obs is not None:
+            zem, dz, dchi, d_ngrid = self.cosmo_setup.box_freq_to_quantities(
+                nu_obs=self.nu_obs,
+                dnu_obs=self.dnu_obs,
+                boxsize=self.boxsize_z,
+                ngrid=self.ngrid_z,
+                z_start=self.halo_redshift,
+                line_name=self.line_name
+            )
+            Ngrid_new = int(self.ngrid_z / d_ngrid) if d_ngrid < self.ngrid_z else 1
+            d_ngrid = d_ngrid if d_ngrid < self.ngrid_z else self.ngrid_z
+            
+        if self.dnu_obs is None:
+            Ngrid_new = self.ngrid_z
+            d_ngrid = self.ngrid_z
+
+        self.ngrid_z = Ngrid_new
+        Igcal = self.make_quantity_grid()
+
+        return Igcal
+    
+    
+    def make_quantity_rectangular_grid_z_evo(self):
+        if self.dnu_obs is not None:
+            zem, dz, dchi, d_ngrid = self.cosmo_setup.box_freq_to_quantities(
+                nu_obs=self.nu_obs,
+                dnu_obs=self.dnu_obs,
+                boxsize=self.boxsize_z,
+                ngrid=self.ngrid_z,
+                z_start=self.halo_redshift,
+                line_name=self.line_name
+            )
+            Ngrid_new = int(self.ngrid_z / d_ngrid) if d_ngrid < self.ngrid_z else 1
+            d_ngrid = d_ngrid if d_ngrid < self.ngrid_z else self.ngrid_z
+            
+            print("The quantities are", zem, dz, dchi, d_ngrid)
+
+        # if dnu_obs is None, then ngrid along z axis will remain unchanged.
+        if self.dnu_obs is None:
+            Ngrid_new = self.ngrid_z
+            d_ngrid = self.ngrid_z
+
+        cellsize_x = self.boxsize_x / self.ngrid_x
+        cellsize_y = self.boxsize_y / self.ngrid_y
+        cellsize_z = self.boxsize_z / Ngrid_new
+
+
+        grid_intensity = np.array([])
+
+        for i in range(Ngrid_new):
+            z_start = self.halo_redshift + (i * dz)
+
+            if cellsize_x:
+                d_omega_pix = self.cosmo_setup.solid_angle(cellsize_x, z_start)
+
+            if cellsize_y:
+                d_omega_pix = self.cosmo_setup.solid_angle(cellsize_y, z_start)
+
+            d_nu = self.cosmo_setup.comoving_size_to_delta_nu(cellsize_z, z_start, line_name=self.line_name)
+
+            zrange = self.halo_cm[:, 2]
+            mask = np.where((zrange >= i * dchi) & (zrange < (i + 1) * dchi))
+
+            x_mask = self.halo_cm[:, 0][mask]
+            y_mask = self.halo_cm[:, 1][mask]
+            z_mask = zrange[mask]
+
+            hloc_mask = np.stack((x_mask, y_mask, z_mask), axis=1)
+            grid_lum = lu.make_grid_rectangular(
+                hloc_mask,
+                weight=self.luminosity,
+                ngrid_x=self.ngrid_x,
+                ngrid_y=self.ngrid_y,
+                ngrid_z=1,
+                boxsize_x=self.boxsize_x,
+                boxsize_y=self.boxsize_y,
+                boxsize_z=self.boxsize_z,
+            )
+
+            D_lum = self.cosmo_setup.D_luminosity(self.halo_redshift)
+            prefac = 4.0204e-2 * self.small_h ** 2  # Lsol/Mpc^2/ GHz
+
+            grid_intensity_cal = (
+                    prefac * (grid_lum / 4.0 / np.pi / D_lum ** 2) / d_omega_pix / d_nu
+            )  # Jy/sr
+
+            if i == 0:
+                grid_intensity = grid_intensity_cal
+            else:
+                grid_intensity = np.dstack([grid_intensity, grid_intensity_cal])
+
+        return grid_intensity
+    
+    
+        
+    def make_intensity_grid(self):
+        if not self.z_evolution:
+            Igcal = self.make_quantity_rectangular_grid_no_z_evo()
+        else:
+            Igcal = self.make_quantity_rectangular_grid_z_evo()
+
+        if self.theta_fwhm is None:
+            return Igcal
+
+        elif self.theta_fwhm:
+            Ngrid_z = np.shape(Igcal)[2]
+            zem, dz, dchi, d_ngrid = self.cosmo_setup.box_freq_to_quantities(nu_obs=self.nu_obs,
+                                                                              dnu_obs=self.dnu_obs,
+                                                                              boxsize=self.boxsize_z,
+                                                                              ngrid=self.ngrid_z,
+                                                                              line_name=self.line_name)
+
+            convolved_grid = []
+            theta = lu.convert_beam_unit_to_radian(self.theta_fwhm, beam_unit='arcmin')
+            cellsize_x = self.boxsize_x / self.ngrid_x
+            cellsize_y = self.boxsize_y / self.ngrid_y
+
+            for i in range(Ngrid_z):
+                z_start = self.halo_redshift + (i * dz)
+                beam_size = self.cosmo_setup.angle_to_comoving_size(z_start, theta)
+                beam_std_x = beam_size / (np.sqrt(8 * np.log(2.0))) / cellsize_x
+                beam_std_y = beam_size / (np.sqrt(8 * np.log(2.0))) / cellsize_y
+
+                gauss_kernel = Gaussian2DKernel(beam_std_x, y_stddev=beam_std_y)
+                grid_quantity = Igcal[:, :, i: i + 1].reshape(self.ngrid_x, self.ngrid_y)
+                convolved_grid_cal = convolve(grid_quantity, gauss_kernel)
+                convolved_grid.append(convolved_grid_cal)
+
+            Igcal = np.swapaxes(convolved_grid, 0, 2)
+
+        return Igcal
+    
+    
+    def get_beam_cov_3d(self, grid_quantity):
+        
+        theta = lu.convert_beam_unit_to_radian(self.theta_fwhm, beam_unit=self.beam_unit)
+        beam_size = self.cosmo_setup.angle_to_comoving_size(self.halo_redshift, theta)
+        
+        cellsize_x = self.boxsize_x / self.ngrid_x
+        cellsize_y = self.boxsize_y / self.ngrid_y
+        
+        beam_std_x = beam_size / (np.sqrt(8 * np.log(2.0))) / cellsize_x
+        beam_std_y = beam_size / (np.sqrt(8 * np.log(2.0))) / cellsize_y
+    
+        gauss_kernel = Gaussian2DKernel(beam_std_x, y_stddev=beam_std_y)
+    
+        convolved_grid = []
+        
+        Ngrid_new = np.shape(grid_quantity)[2]
+    
+        for i in range(Ngrid_new):
+            grid_start = i * self.d_ngrid
+            grid_end = (i + 1) * self.d_ngrid
+            grid_quantity1 = np.mean(grid_quantity[:, :, grid_start:grid_end], axis=2)
+            convolved_grid_cal = convolve(grid_quantity1, gauss_kernel)
+            convolved_grid.append(convolved_grid_cal)
+    
+        return np.swapaxes(convolved_grid, 0, 2)
+    
+    
+    
+    def make_grid_dnu_obs(self, grid):
+        global zem, dz, dchi, d_ngrid 
+        
+        # Compute useful quantities
+        zem, dz, dchi, d_ngrid = self.cosmo_setup.box_freq_to_quantities(nu_obs=self.nu_obs,
+                                                                          dnu_obs=self.dnu_obs,
+                                                                          boxsize=self.boxsize_z,
+                                                                          ngrid=self.ngrid_z,
+                                                                          line_name=self.line_name)
+
+        Ngrid_new = int(self.ngrid_z / d_ngrid) if d_ngrid < self.ngrid_z else 1
+        d_ngrid = min(d_ngrid, self.ngrid_z)
+        
+        if self.theta_fwhm is not None:
+            convolved_grid = []
+            theta = lu.convert_beam_unit_to_radian(self.theta_fwhm, beam_unit='arcmin')
+            
+            for i in range(Ngrid_new):
+                grid_start = i * d_ngrid
+                grid_end = (i + 1) * d_ngrid
+                z_start = zem + (i * dz)
+                beam_size = self.cosmo_setup.angle_to_comoving_size(z_start, theta)
+                beam_std = beam_size / (np.sqrt(8 * np.log(2.0)))
+                gauss_kernel = Gaussian2DKernel(beam_std)
+                grid_quantity = np.mean(grid[:, :, grid_start: grid_end], axis=2)
+                convolved_grid_cal = convolve(grid_quantity, gauss_kernel)
+                convolved_grid.append(convolved_grid_cal)
+
+            Igcal = np.swapaxes(convolved_grid, 0, 2)
+
+            return Igcal
+
+        if self.theta_fwhm is None:
+            grid_split = np.split(grid, Ngrid_new, axis=2)
+            grid_mean = np.mean(grid_split, axis=3)
+            Igcal = np.swapaxes(grid_mean, 0, 2)
+
+            return Igcal
+
+
+
+
+
+
+
+
+
+
+
+
 class lim_sims:
     def __init__(self, halocat_file, halo_redshift, sfr_model="Behroozi19",
                  model_name="Silva15-m1", quantity="intensity", line_name="CII158",
                  halo_cutoff_mass=1e11, halocat_type="input_cat", parameters=None,
                  ngrid_x=128, ngrid_y=128, ngrid_z=128, boxsize_x=1, boxsize_y=1, boxsize_z=1,
-                 nu_obs=None, dnu_obs=None, theta_fwhm=None, z_evolution=False):
+                 nu_obs=None, dnu_obs=None, theta_fwhm=None, beam_unit="arcmin", z_evolution=False):
 
         self.halocat_file = halocat_file
         self.halo_redshift = halo_redshift
@@ -1917,8 +2206,8 @@ class lim_sims:
         self.nu_obs = nu_obs
         self.dnu_obs = dnu_obs
         self.theta_fwhm = theta_fwhm
+        self.beam_unit =  beam_unit
         self.z_evolution = z_evolution
-        
         
         
         if parameters is None:
@@ -1982,6 +2271,8 @@ class lim_sims:
             return grid_intensity
         else:
             raise ValueError("Invalid quantity specified. Must be 'luminosity' or 'intensity'.")
+
+	
 
     def make_quantity_rectangular_grid_no_z_evo(self):
         if self.dnu_obs is not None:
@@ -2145,8 +2436,10 @@ class lim_sims:
         gauss_kernel = Gaussian2DKernel(beam_std_x, y_stddev=beam_std_y)
     
         convolved_grid = []
+        
+        Ngrid_new = np.shape(grid_quantity)[2]
     
-        for i in range(self.Ngrid_new):
+        for i in range(Ngrid_new):
             grid_start = i * self.d_ngrid
             grid_end = (i + 1) * self.d_ngrid
             grid_quantity1 = np.mean(grid_quantity[:, :, grid_start:grid_end], axis=2)
@@ -2596,7 +2889,6 @@ class cib_modelling:
     
 
         
-    
     
     
     
